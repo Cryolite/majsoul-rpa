@@ -1,0 +1,9 @@
+__pycache__
+
+/.vscode/
+/majsoul_rpa/_impl/mahjongsoul_pb2.py
+/bin/chromedriver*
+/bin/protoc*
+/.venv/
+/majsoul_rpa.egg-info/
+/build/
