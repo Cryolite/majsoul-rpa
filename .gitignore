@@ -7,3 +7,5 @@ __pycache__
 /.venv/
 /majsoul_rpa.egg-info/
 /build/
+/log/
+/screenshot/

@@ -4,26 +4,28 @@ import datetime
 import time
 from typing import (Union,)
 from PIL.Image import Image
+from majsoul_rpa.common import TimeoutType
 from majsoul_rpa._impl import (Template, BrowserBase,)
 from majsoul_rpa.presentation.presentation_base \
-    import (Timeout, PresentationNotDetected, PresentationBase)
+    import (InvalidOperation, PresentationNotDetected, PresentationBase)
 
 
 class AuthPresentation(PresentationBase):
     @staticmethod
-    def _wait(browser: BrowserBase, timeout: float=10.0) -> None:
+    def _wait(browser: BrowserBase, timeout: TimeoutType=10.0) -> None:
         template = Template.open('template/auth/marker')
         template.wait_for(browser, timeout)
 
     def __init__(self, screenshot: Image) -> None:
-        super(AuthPresentation, self).__init__(screenshot, None)
+        super(AuthPresentation, self).__init__(redis=None)
+
         self.__mail_address = ''
         self.__auth_code = ''
 
         template = Template.open('template/auth/marker')
-        if not template.match(self.screenshot):
+        if not template.match(screenshot):
             raise PresentationNotDetected(
-                'Could not detect `LoginPresentation`.', self.screenshot)
+                'Could not detect `LoginPresentation`.', screenshot)
 
     def get_mail_address(self) -> str:
         return self.__mail_address
@@ -32,11 +34,18 @@ class AuthPresentation(PresentationBase):
         return self.__auth_code
 
     def enter_mail_address(
-        self, rpa, mail_address: str, timeout: float=10.0) -> None:
+        self, rpa, mail_address: str, timeout: TimeoutType=10.0) -> None:
         self._assert_not_stale()
 
         from majsoul_rpa import RPA
         rpa: RPA = rpa
+
+        if self.__mail_address != '':
+            raise InvalidOperation(
+                'Mail address has been already entered.', rpa.get_screenshot())
+
+        if isinstance(timeout, (int, float,)):
+            timeout = datetime.timedelta(seconds=timeout)
 
         # 「メールアドレス」のテキストボックスをクリックしてフォーカスする．
         rpa._click_region(480, 373, 428, 55)
@@ -59,14 +68,20 @@ class AuthPresentation(PresentationBase):
         time.sleep(0.1)
 
     def enter_auth_code(
-        self, rpa, auth_code: Union[int, str], timeout: float=60.0):
+        self, rpa, auth_code: Union[int, str],
+        timeout: TimeoutType=120.0) -> None:
         self._assert_not_stale()
 
         from majsoul_rpa import RPA
         rpa: RPA = rpa
 
-        start_time = datetime.datetime.now(datetime.timezone.utc)
-        deadline = start_time + datetime.timedelta(seconds=timeout)
+        if self.__mail_address == '':
+            raise InvalidOperation(
+                'Mail address has not been entered yet.', rpa.get_screenshot())
+
+        if isinstance(timeout, (int, float,)):
+            timeout = datetime.timedelta(seconds=timeout)
+        deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
 
         self.__auth_code = str(auth_code)
 
@@ -90,9 +105,7 @@ class AuthPresentation(PresentationBase):
 
         # ホーム画面が表示されるまで待つ．
         timeout = deadline - datetime.datetime.now(datetime.timezone.utc)
-        HomePresentation._wait(
-            rpa._get_browser(), timeout.microseconds / 1000000.0)
+        HomePresentation._wait(rpa._get_browser(), timeout)
 
-        p = HomePresentation._create(rpa.get_screenshot(), rpa._get_redis())
-        self._become_stale()
-        return p
+        p = HomePresentation(rpa.get_screenshot(), rpa._get_redis())
+        self._set_new_presentation(p)

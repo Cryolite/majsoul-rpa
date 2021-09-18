@@ -123,9 +123,17 @@ class RPA(object):
     def _press_hotkey(self, *args: str):
         self.__browser.press_hotkey(*args)
 
+    def _move_to_region(
+        self, left: int, top: int, width: int, height: int,
+        edge_sigma: float=2.0, warp: bool=False) -> None:
+        self.__browser.move_to_region(
+            left, top, width, height, edge_sigma=edge_sigma, warp=warp)
+
     def _click_region(
-        self, left: int, top: int, width: int, height: int) -> None:
-        self.__browser.click_region(left, top, width, height)
+        self, left: int, top: int, width: int, height: int,
+        edge_sigma: float=2.0, warp: bool=False) -> None:
+        self.__browser.click_region(
+            left, top, width, height, edge_sigma=edge_sigma, warp=warp)
 
     def _click_template(self, name_or_path: Union[str, Path]) -> None:
         if isinstance(name_or_path, Path):
@@ -171,9 +179,8 @@ class RPA(object):
 
             try:
                 from majsoul_rpa.presentation import RoomHostPresentation
-                p = RoomHostPresentation.create(screenshot, self._get_redis())
-                now = datetime.datetime.now(datetime.timezone.utc)
-                return p._update((deadline - now).microseconds / 1000000.0)
+                return RoomHostPresentation._create(
+                    screenshot, self._get_redis())
             except PresentationNotDetected as e:
                 pass
 

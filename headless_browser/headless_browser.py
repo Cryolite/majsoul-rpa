@@ -142,6 +142,14 @@ def main(driver) -> None:
                     ac.key_up(_KEY_MAP[args[i - 1]])
             response = {'result': 'O.K.'}
             respond(response)
+        elif message['type'] == 'move':
+            x = message['x']
+            y = message['y']
+            ac = ActionChains(driver)
+            ac.move_to_element_with_offset(canvas, x, y)
+            ac.perform
+            response = {'result': 'O.K.'}
+            respond(response)
         elif message['type'] == 'click':
             x = message['x']
             y = message['y']
