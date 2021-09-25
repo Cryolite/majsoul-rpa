@@ -54,6 +54,10 @@ class MatchPresentation(PresentationBase):
 
         templates = [f'template/match/marker{i}' for i in range(4)]
         if Template.match_one_of(screenshot, templates) == -1:
+            if True:
+                # For postmortem.
+                now = datetime.datetime.now(datetime.timezone.utc)
+                screenshot.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
             raise PresentationNotDetected(
                 'Could not detect `match_main`.', screenshot)
 
