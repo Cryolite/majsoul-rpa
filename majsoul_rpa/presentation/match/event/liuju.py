@@ -10,7 +10,7 @@ class LiujuEvent(EventBase):
         super(LiujuEvent, self).__init__(timestamp)
 
         if data['type'] >= 2:
-            raise NotImplemented(data['type'])
+            raise NotImplementedError(data['type'])
         self.__type = (None, '九種九牌')[data['type']]
         if self.__type == '九種九牌':
             self.__seat = data['seat']

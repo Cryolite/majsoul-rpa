@@ -79,7 +79,7 @@ class BrowserBase(object):
             ewmh.setActiveWindow(self._window)
             ewmh.display.flush()
         else:
-            raise NotImplemented(platform.system())
+            raise NotImplementedError(platform.system())
 
     def write(self, message: str, interval: float) -> None:
         raise NotImplementedError

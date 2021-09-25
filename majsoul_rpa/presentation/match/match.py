@@ -722,18 +722,83 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                     'An invalid operation.', rpa.get_screenshot())
 
         if operation is None:
-            # 選択肢をスキップする．
-            if False:
-                template = Template.open('template/match/skip')
-                template.click(rpa._get_browser())
+            # 選択肢をスキップする．ラグ読みされるのを防ぐため，スキップの
+            # UI 操作は可能な限り短時間で行う必要がある．この目的を
+            # 達成するために以下の工夫を行う．
+            #
+            #   * 上家以外の打牌に対するチー・ポン・カン・ロンをスキップする
+            #     場合は，「スキップ」のボタンが出現してくる場所を（ボタンが
+            #     出現するタイミング以前から）連打する．
+            #   * 上家の打牌に対するチー・ポン・カン・ロンをスキップする
+            #     場合は，「鳴き無し」ボタンをクリックすることにより
+            #     スキップする（選択肢が出た後でも「鳴き無し」ボタンを
+            #     クリックすると「スキップ」ボタンをクリックしたのと同じ
+            #     効果がある）．上家の打牌に対するスキップをこのような
+            #     特殊な操作で行う理由は，仮に上家の打牌に対するスキップを
+            #     前項と同じ方法（「スキップ」ボタンの連打）で行うと，自身の
+            #     自摸に対する選択肢（立直・ツモ・カン）もスキップしてしまう
+            #     場合があるためである．
+            skip_by_claim_off = False
+            for o in self.__operation_list:
+                if isinstance(o, (ChiOperation, PengOperation, DaminggangOperation, RongOperation,)):
+                    assert(self.prev_dapai_seat is not None)
+                    if (self.seat + 4 - self.prev_dapai_seat) % 4 == 1:
+                        skip_by_claim_off = True
+
+            if skip_by_claim_off:
+                # 上家の打牌に対する選択肢を「鳴き無し」ボタンを
+                # クリックすることでスキップする．スキップできたら再度
+                # 「鳴き無し」ボタンをクリックして鳴きができる状態に戻す．
+                rpa._click_region(14, 610, 43, 44, edge_sigma=1.0, warp=True)
+                while True:
+                    if datetime.datetime.now(datetime.timezone.utc) > deadline:
+                        raise Timeout('Timeout', rpa.get_screenshot())
+                    message = rpa._get_redis().dequeue_message(0.0)
+                    if message is None:
+                        continue
+                    direction, name, request, response, timestamp = message
+                    if name == '.lq.Lobby.heatbeat':
+                        continue
+                    if name == '.lq.NotifyReviveCoinUpdate':
+                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                        continue
+                    if name == '.lq.FastTest.checkNetworkDelay':
+                        continue
+                    if name == '.lq.FastTest.fetchGamePlayerState':
+                        # TODO: 各プレイヤの接続状態の確認．
+                        continue
+                    if name == '.lq.NotifyPlayerConnectionState':
+                        # TODO: 各プレイヤの接続状態の確認
+                        continue
+                    if name == '.lq.NotifyGameBroadcast':
+                        # TODO: スタンプその他の処理
+                        continue
+                    if name == '.lq.PlayerLeaving':
+                        # TODO: 離席判定をくらった場合の対処
+                        continue
+                    if name == '.lq.FastTest.inputOperation':
+                        raise InconsistentMessage(
+                            'An inconsistent message', rpa.get_screenshot())
+                    if name == '.lq.FastTest.inputChiPengGang':
+                        break
+                    if name == '.lq.ActionPrototype':
+                        break
+                rpa._get_redis().put_back(message)
+                rpa._click_region(14, 610, 43, 44, edge_sigma=1.0)
             else:
-                # ラグ読みを防ぐため，「キャンセル」を超高速にクリックする．
-                # `interval=0.5` 以下は誤クリックの可能性がある．
+                # 上家以外の打牌に対する選択肢を「スキップ」ボタンを
+                # 連打することでスキップする．「スキップ」ボタンの
+                # template の region は以下でコメントアウトしている範囲だが，
+                # 選択肢が少し右からスクロールインしてくる形で
+                # 表示されるため，以下の region の左側をあまりに早く
+                # クリックすると「スキップ」以外のボタンがクリックされる
+                # 可能性がある．そのため，クリックする region を若干右側に
+                # 限定している．
                 #self.__robust_click_region(
-                #    rpa, 1227, 811, 164, 50, interval=0.6, timeout=5.0,
+                #    rpa, 1227, 811, 164, 50, interval=0.2, timeout=5.0,
                 #    edge_sigma=1.0, warp=True)
                 self.__robust_click_region(
-                    rpa, 1390, 811, 1, 50, interval=0.6, timeout=5.0,
+                    rpa, 1309, 811, 82, 50, interval=0.2, timeout=5.0,
                     edge_sigma=1.0, warp=True)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
