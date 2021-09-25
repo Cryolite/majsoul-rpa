@@ -3,12 +3,12 @@
 import math
 from io import BytesIO
 import time
+import platform
 import json
 import base64
 from typing import (Tuple, Union, Iterable,)
 import PIL.Image
 from PIL.Image import Image
-import pygetwindow
 import pyautogui
 import redis
 from selenium import webdriver
@@ -47,19 +47,39 @@ class BrowserBase(object):
         raise NotImplementedError
 
     def activate(self) -> None:
-        if self._window is None:
-            windows = []
-            for w in pygetwindow.getAllWindows():
-                if w.title.startswith(
-                    '雀魂 -じゃんたま-| 麻雀を無料で気軽に'):
-                    windows.append(w)
-            if len(windows) == 0:
-                raise RuntimeError('No window for Mahjong Soul is found.')
-            if len(windows) > 1:
-                raise RuntimeError(
-                    'Multiple windows for Mahjong Soul are found.')
-            self._window = windows[0]
-        self._window.activate()
+        if platform.system() == 'Windows':
+            import pygetwindow
+            if self._window is None:
+                windows = []
+                for w in pygetwindow.getAllWindows():
+                    if w.title.startswith('雀魂 -じゃんたま-| 麻雀を無料で気軽に'):
+                        windows.append(w)
+                if len(windows) == 0:
+                    raise RuntimeError('No window for Mahjong Soul is found.')
+                if len(windows) > 1:
+                    raise RuntimeError(
+                        'Multiple windows for Mahjong Soul are found.')
+                self._window = windows[0]
+            self._window.activate()
+        elif platform.system() == 'Linux':
+            from ewmh import EWMH
+            ewmh = EWMH()
+            if self._window is None:
+                windows = []
+                for w in ewmh.getClientList():
+                    title = ewmh.getWmName(w).decode('UTF-8')
+                    if title.startswith('雀魂 -じゃんたま-| 麻雀を無料で気軽に'):
+                        windows.append(w)
+                if len(windows) == 0:
+                    raise RuntimeError('No window for Mahjong Soul is found.')
+                if len(windows) > 1:
+                    raise RuntimeError(
+                        'Multiple windows for Mahjong Soul are found.')
+                self._window = windows[0]
+            ewmh.setActiveWindow(self._window)
+            ewmh.display.flush()
+        else:
+            raise NotImplemented(platform.system())
 
     def write(self, message: str, interval: float) -> None:
         raise NotImplementedError
