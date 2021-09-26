@@ -737,14 +737,14 @@ timestamp: {timestamp}''', rpa.get_screenshot())
             #     前項と同じ方法（「スキップ」ボタンの連打）で行うと，自身の
             #     自摸に対する選択肢（立直・ツモ・カン）もスキップしてしまう
             #     場合があるためである．
-            skip_by_claim_off = False
+            skip_by_melding_off = False
             for o in self.__operation_list:
                 if isinstance(o, (ChiOperation, PengOperation, DaminggangOperation, RongOperation,)):
                     assert(self.prev_dapai_seat is not None)
                     if (self.seat + 4 - self.prev_dapai_seat) % 4 == 1:
-                        skip_by_claim_off = True
+                        skip_by_melding_off = True
 
-            if skip_by_claim_off:
+            if skip_by_melding_off:
                 # 上家の打牌に対する選択肢を「鳴き無し」ボタンを
                 # クリックすることでスキップする．スキップできたら再度
                 # 「鳴き無し」ボタンをクリックして鳴きができる状態に戻す．
@@ -776,8 +776,7 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         # TODO: 離席判定をくらった場合の対処
                         continue
                     if name == '.lq.FastTest.inputOperation':
-                        raise InconsistentMessage(
-                            'An inconsistent message', rpa.get_screenshot())
+                        raise InconsistentMessage(message, rpa.get_screenshot())
                     if name == '.lq.FastTest.inputChiPengGang':
                         break
                     if name == '.lq.ActionPrototype':
