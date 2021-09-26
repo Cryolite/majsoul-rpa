@@ -467,7 +467,6 @@ timestamp: {timestamp}''', screenshot)
                         raise InconsistentMessage(message, rpa.get_screenshot())
                     raise InconsistentMessage(message, rpa.get_screenshot())
 
-                from majsoul_rpa.presentation.match.match import MatchPresentation
                 now = datetime.datetime.now(datetime.timezone.utc)
                 MatchPresentation._wait(rpa._get_browser(), deadline - now)
                 now = datetime.datetime.now(datetime.timezone.utc)
