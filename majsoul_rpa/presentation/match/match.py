@@ -153,6 +153,10 @@ action: {data}''', screenshot)
                 # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
                 continue
 
+            if name == '.lq.NotifyGiftSendRefresh':
+                # 同上
+                continue
+
             if name == '.lq.FastTest.checkNetworkDelay':
                 continue
 
@@ -303,6 +307,10 @@ timestamp: {timestamp}''', screenshot)
                 # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
                 continue
 
+            if name == '.lq.NotifyGiftSendRefresh':
+                # 同上
+                continue
+
             if name == '.lq.FastTest.checkNetworkDelay':
                 continue
 
@@ -353,6 +361,10 @@ timestamp: {timestamp}''', screenshot)
 
             if name == '.lq.NotifyReviveCoinUpdate':
                 # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                continue
+
+            if name == '.lq.NotifyGiftSendRefresh':
+                # 同上
                 continue
 
             if name == '.lq.FastTest.checkNetworkDelay':
@@ -426,6 +438,10 @@ timestamp: {timestamp}''', screenshot)
                 # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
                 continue
 
+            if name == '.lq.NotifyGiftSendRefresh':
+                # 同上
+                continue
+
             if name == '.lq.FastTest.checkNetworkDelay':
                 continue
 
@@ -444,6 +460,9 @@ timestamp: {timestamp}''', screenshot)
                         continue
                     if name == '.lq.NotifyReviveCoinUpdate':
                         # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                        continue
+                    if name == '.lq.NotifyGiftSendRefresh':
+                        # 同上
                         continue
                     if name == '.lq.FastTest.checkNetworkDelay':
                         continue
@@ -505,6 +524,10 @@ timestamp: {timestamp}''', screenshot)
 
             if name == '.lq.NotifyReviveCoinUpdate':
                 # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                continue
+
+            if name == '.lq.NotifyGiftSendRefresh':
+                # 同上
                 continue
 
             if name == '.lq.FastTest.fetchGamePlayerState':
@@ -761,6 +784,9 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                     if name == '.lq.NotifyReviveCoinUpdate':
                         # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
                         continue
+                    if name == '.lq.NotifyGiftSendRefresh':
+                        # 同上
+                        continue
                     if name == '.lq.FastTest.checkNetworkDelay':
                         continue
                     if name == '.lq.FastTest.fetchGamePlayerState':
@@ -834,6 +860,9 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         continue
                     if name == '.lq.NotifyReviveCoinUpdate':
                         # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                        continue
+                    if name == '.lq.NotifyGiftSendRefresh':
+                        # 同上
                         continue
                     if name == '.lq.FastTest.fetchGamePlayerState':
                         # TODO: 各プレイヤの接続状態の確認．
@@ -925,6 +954,9 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         continue
                     if name == '.lq.NotifyReviveCoinUpdate':
                         # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                        continue
+                    if name == '.lq.NotifyGiftSendRefresh':
+                        # 同上
                         continue
                     if name == '.lq.FastTest.fetchGamePlayerState':
                         # TODO: 各プレイヤの接続状態の確認．
