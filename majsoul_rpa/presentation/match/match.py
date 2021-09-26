@@ -971,6 +971,10 @@ timestamp: {timestamp}''', rpa.get_screenshot())
             return
 
         if isinstance(operation, AngangOperation):
+            # 手牌の上にカーソルがあると和牌候補が表示されて
+            # テンプレートマッチングを邪魔することがあるので
+            # 手牌が無い適当な位置にカーソルを移動する．
+            rpa._move_to_region(986, 806, 134, 57, edge_sigma=1.0)
             templates = tuple(
                 Template.open(f'template/match/gang{i}') for i in range(2))
             try:
