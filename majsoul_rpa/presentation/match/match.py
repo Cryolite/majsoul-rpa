@@ -838,9 +838,13 @@ timestamp: {timestamp}''', rpa.get_screenshot())
             return
 
         if isinstance(operation, ChiOperation):
-            template = Template.open('template/match/chi')
+            templates = tuple(
+                Template.open(f'template/match/chi{i}') for i in range(2))
             try:
-                template.wait_for_then_click(rpa._get_browser(), 5.0)
+                # `timeout` を短めに設定しておかないと，他家の栄和に
+                # 邪魔された際に和了画面に反応できなくなる．
+                Template.wait_for_one_of_then_click(
+                    templates, rpa._get_browser(), timeout=5.0)
             except Timeout as e:
                 # 他家のポン，槓もしくは栄和に邪魔された可能性がある．
                 while True:
