@@ -1338,10 +1338,23 @@ timestamp: {timestamp}''', rpa.get_screenshot())
             return
 
         if isinstance(operation, DaminggangOperation):
-            ss = rpa.get_screenshot()
+            template = Template.open('template/match/gang0')
+            try:
+                template.wait_for_then_click(rpa._get_browser(), 10.0)
+            except Timeout as e:
+                ss = rpa.get_screenshot()
+                now = datetime.datetime.now(datetime.timezone.utc)
+                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
+                raise NotImplementedError
+            if len(operation.combinations) >= 2:
+                ss = rpa.get_screenshot()
+                now = datetime.datetime.now(datetime.timezone.utc)
+                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
+                raise NotImplementedError
+            self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
-            ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-            raise NotImplementedError
+            self._wait_impl(rpa, deadline - now)
+            return
 
         if isinstance(operation, JiagangOperation):
             # 手牌の上にカーソルがあると和牌候補が表示されて
