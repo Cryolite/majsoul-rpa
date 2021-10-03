@@ -1218,8 +1218,10 @@ timestamp: {timestamp}''', rpa.get_screenshot())
             templates = tuple(
                 Template.open(f'template/match/peng{i}') for i in range(2))
             try:
+                # `timeout` を短めに設定しておかないと，他家の栄和に
+                # 邪魔された際に和了画面に反応できなくなる．
                 Template.wait_for_one_of_then_click(
-                    templates, rpa._get_browser(), 10.0)
+                    templates, rpa._get_browser(), timeout=5.0)
             except Timeout as e:
                 # TODO: 他家の栄和に邪魔された可能性がある．
                 while True:
@@ -1291,10 +1293,20 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         raise InconsistentMessage(message, rpa.get_screenshot())
                     raise InconsistentMessage(message, rpa.get_screenshot())
             if len(operation.combinations) >= 2:
-                ss = rpa.get_screenshot()
-                now = datetime.datetime.now(datetime.timezone.utc)
-                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                if len(operation.combinations) == 2:
+                    if index == 0:
+                        left = 780
+                    elif index == 1:
+                        left = 980
+                    else:
+                        raise InvalidOperation(
+                            f'{index}: out-of-range index', rpa.get_screenshot())
+                else:
+                    ss = rpa.get_screenshot()
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
+                    raise AssertionError(len(operation.combinations))
+                rpa._click_region(left, 691, 160, 120)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
