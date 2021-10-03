@@ -829,6 +829,15 @@ timestamp: {timestamp}''', screenshot)
                     template = Template.open('template/match/no_tile_confirm')
                     template.wait_until_then_click(rpa._get_browser(), deadline)
 
+                    if data['liujumanguan']:
+                        # 流し満貫達成者が居る場合．
+                        # 流し満貫達成者が居る場合，和了と同じ演出があるので，
+                        # それに対する「確認」ボタンをクリックする必要がある．
+                        template = Template.open('template/match/hule_confirm')
+                        for i in range(len(data['scores'])):
+                            template.wait_until_then_click(
+                                rpa._get_browser(), deadline)
+
                     self.__on_end_of_round(rpa, deadline)
                     return
 
