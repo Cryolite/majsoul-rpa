@@ -1177,11 +1177,37 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                     else:
                         raise InvalidOperation(
                             f'{index}: out-of-range index', rpa.get_screenshot())
+                elif len(operation.combinations) == 4:
+                    if index == 0:
+                        left = 580
+                    elif index == 1:
+                        left = 780
+                    elif index == 2:
+                        left = 980
+                    elif index == 3:
+                        left = 1180
+                    else:
+                        raise InvalidOperation(
+                            f'{index}: out-of-range index', rpa.get_screenshot())
+                elif len(operation.combinations) == 5:
+                    if index == 0:
+                        left = 480
+                    elif index == 1:
+                        left = 680
+                    elif index == 2:
+                        left = 880
+                    elif index == 3:
+                        left = 1080
+                    elif index == 4:
+                        left = 1280
+                    else:
+                        raise InvalidOperation(
+                            f'{index}: out-of-range index', rpa.get_screenshot())
                 else:
                     ss = rpa.get_screenshot()
                     now = datetime.datetime.now(datetime.timezone.utc)
                     ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                    raise NotImplementedError
+                    raise AssertionError(len(operation.combinations))
                 rpa._click_region(left, 691, 160, 120)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
