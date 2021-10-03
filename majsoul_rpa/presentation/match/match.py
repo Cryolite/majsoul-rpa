@@ -618,6 +618,80 @@ timestamp: {timestamp}''', screenshot)
                 self._set_new_presentation(p)
                 return
 
+            if name == '.lq.ActionPrototype':
+                # `.lq.FastTest.confirmNewRound` のレスポンスメッセージと
+                # `ActionNewRound` メッセージの順序が逆転する場合があるので，
+                # その場合に対する workaround.
+                step, action_name, data = _common.parse_action(request)
+                if action_name != 'ActionNewRound':
+                    raise InconsistentMessage(message, rpa.get_screenshot())
+                while True:
+                    # `.lq.FastTest.confirmNewRound` のレスポンスメッセージを
+                    # 待つ．
+                    if datetime.datetime.now(datetime.timezone.utc) > deadline:
+                        raise Timeout('Timeout', rpa.get_screenshot())
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    next_message = rpa._get_redis().dequeue_message(deadline - now)
+                    if next_message is None:
+                        continue
+                    _, next_name, _, _, _ = next_message
+                    if next_name == '.lq.Lobby.heatbeat':
+                        continue
+                    if next_name == '.lq.NotifyReviveCoinUpdate':
+                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+                        continue
+                    if next_name == '.lq.NotifyGiftSendRefresh':
+                        # 同上．
+                        continue
+                    if next_name == '.lq.NotifyDailyTaskUpdate':
+                        # 同上．
+                        continue
+                    if next_name == '.lq.NotifyShopUpdate':
+                        # 同上．
+                        continue
+                    if next_name == '.lq.NotifyAccountChallengeTaskUpdate':
+                        # 同上．
+                        continue
+                    if next_name == '.lq.NotifyAnnouncementUpdate':
+                        # 告知の更新があった場合．
+                        continue
+                    if next_name == '.lq.FastTest.authGame':
+                        # ゲーム中にまれにやり取りされる．
+                        continue
+                    if next_name == '.lq.FastTest.checkNetworkDelay':
+                        raise InconsistentMessage(
+                            next_message, rpa.get_screenshot())
+                    if next_name == '.lq.FastTest.fetchGamePlayerState':
+                        # TODO: 各プレイヤの接続状態の確認
+                        raise InconsistentMessage(
+                            next_message, rpa.get_screenshot())
+                    if next_name == '.lq.NotifyPlayerConnectionState':
+                        # TODO: 各プレイヤの接続状態の確認
+                        continue
+                    if next_name == '.lq.NotifyGameBroadcast':
+                        # TODO: スタンプその他の処理
+                        continue
+                    if next_name == '.lq.PlayerLeaving':
+                        # TODO: 離席判定をくらった場合の対処
+                        continue
+                    if next_name == '.lq.ActionPrototype':
+                        raise InconsistentMessage(
+                            next_message, rpa.get_screenshot())
+                    if next_name == '.lq.FastTest.confirmNewRound':
+                        break
+                    raise InconsistentMessage(
+                        next_message, rpa.get_screenshot())
+                rpa._get_redis().put_back(message)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                MatchPresentation._wait(rpa._get_browser(), deadline - now)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                p = MatchPresentation(
+                    self.__prev_presentation, rpa.get_screenshot(),
+                    self._get_redis(), deadline - now,
+                    match_state=self.__match_state)
+                self._set_new_presentation(p)
+                return
+
             if name == '.lq.NotifyGameEndResult':
                 # ゲーム終了時
                 # TODO: メッセージ内容の処理．
