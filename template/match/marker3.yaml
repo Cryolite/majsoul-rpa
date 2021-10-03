@@ -3,4 +3,5 @@ left: 812
 top: 319
 width: 49
 height: 33
-threshold: 0.99
+# `threshold: 0.99` is too high.
+threshold: 0.98
