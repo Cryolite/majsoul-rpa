@@ -37,9 +37,6 @@ class MatchState(object):
     def _set_uuid(self, uuid: str) -> None:
         import sys
         import traceback
-        print('>' * 80, file=sys.stderr)
-        traceback.print_stack()
-        print('<' * 80, file=sys.stderr)
         if self.__uuid is None:
             self.__uuid = uuid
         elif uuid != self.__uuid:
