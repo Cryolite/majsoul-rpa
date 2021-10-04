@@ -5,9 +5,10 @@ import time
 import logging
 from typing import (Optional, Tuple, List,)
 from PIL.Image import Image
+from majsoul_rpa._impl.redis import Message
 from majsoul_rpa.common import TimeoutType
 from majsoul_rpa._impl import (Redis, BrowserBase, Template,)
-from majsoul_rpa import common
+from majsoul_rpa import RPA, common
 from majsoul_rpa.presentation.presentation_base import (
     Timeout, InconsistentMessage, PresentationNotDetected, InvalidOperation,
     PresentationBase,)
@@ -35,6 +36,94 @@ class MatchPresentation(PresentationBase):
             templates = [f'template/match/marker{i}' for i in range(4)]
             if Template.match_one_of(browser.get_screenshot(), templates) != -1:
                 break
+
+    __COMMON_MESSAGE_NAMES = (
+        '.lq.Lobby.heatbeat',
+        '.lq.NotifyReviveCoinUpdate',
+        '.lq.NotifyGiftSendRefresh',
+        '.lq.NotifyDailyTaskUpdate',
+        '.lq.NotifyShopUpdate',
+        '.lq.NotifyAccountChallengeTaskUpdate',
+        '.lq.NotifyAccountUpdate',
+        '.lq.NotifyAnnouncementUpdate',
+        '.lq.FastTest.authGame',
+        '.lq.FastTest.checkNetworkDelay',
+        '.lq.FastTest.fetchGamePlayerState',
+        '.lq.NotifyPlayerConnectionState',
+        '.lq.NotifyGameBroadcast',
+        '.lq.PlayerLeaving',
+    )
+
+    def __on_common_message(self, message: Message) -> None:
+        direction, name, request, response, timestamp = message
+
+        if name == '.lq.Lobby.heatbeat':
+            return
+
+        if name == '.lq.NotifyReviveCoinUpdate':
+            # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyGiftSendRefresh':
+            # 同上．
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyDailyTaskUpdate':
+            # 同上．
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyShopUpdate':
+            # 同上．
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyAccountChallengeTaskUpdate':
+            # 同上．
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyAccountUpdate':
+            # 同上．
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyAnnouncementUpdate':
+            # 告知の更新があった場合．
+            logging.info(message)
+            return
+
+        if name == '.lq.FastTest.authGame':
+            # ゲーム中にまれにやり取りされる．
+            logging.info(message)
+            return
+
+        if name == '.lq.FastTest.checkNetworkDelay':
+            return
+
+        if name == '.lq.FastTest.fetchGamePlayerState':
+            # TODO: 各プレイヤの接続状態の確認
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyPlayerConnectionState':
+            # TODO: 各プレイヤの接続状態の確認
+            logging.info(message)
+            return
+
+        if name == '.lq.NotifyGameBroadcast':
+            # TODO: スタンプその他の処理
+            logging.info(message)
+            return
+
+        if name == '.lq.PlayerLeaving':
+            # TODO: 離席判定をくらった場合の対処
+            logging.info(message)
+            return
+
+        raise AssertionError(message)
 
     def __init__(
         self, prev_presentation: PresentationBase, screenshot: Image,
@@ -146,54 +235,10 @@ step: {step}
 name: {action_name}
 action: {data}''', screenshot)
 
-            if name == '.lq.Lobby.heatbeat':
-                continue
-
-            if name == '.lq.NotifyReviveCoinUpdate':
-                # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                continue
-
-            if name == '.lq.NotifyGiftSendRefresh':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyDailyTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyShopUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAnnouncementUpdate':
-                # 告知の更新があった場合．
-                continue
-
-            if name == '.lq.FastTest.authGame':
-                # ゲーム中にまれにやり取りされる．
-                continue
-
-            if name == '.lq.FastTest.checkNetworkDelay':
-                continue
-
-            if name == '.lq.FastTest.fetchGamePlayerState':
-                # TODO: 各プレイヤの接続状態の確認
-                continue
-
-            if name == '.lq.NotifyPlayerConnectionState':
-                # TODO: 各プレイヤの接続状態の確認
-                continue
-
-            if name == '.lq.NotifyGameBroadcast':
-                # TODO: スタンプその他の処理
-                continue
-
-            if name == '.lq.PlayerLeaving':
-                # TODO: 離席判定をくらった場合の対処
+            # `.lq.FastTest.authGame` に関する条件文は，この条件文より
+            # 先になければならない．
+            if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                self.__on_common_message(message)
                 continue
 
             raise InconsistentMessage(f'''An inconsistent message:
@@ -320,54 +365,8 @@ timestamp: {timestamp}''', screenshot)
                 continue
             direction, name, request, response, timestamp = message
 
-            if name == '.lq.Lobby.heatbeat':
-                continue
-
-            if name == '.lq.NotifyReviveCoinUpdate':
-                # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                continue
-
-            if name == '.lq.NotifyGiftSendRefresh':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyDailyTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyShopUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAnnouncementUpdate':
-                # 告知の更新があった場合．
-                continue
-
-            if name == '.lq.FastTest.authGame':
-                # ゲーム中にまれにやり取りされる．
-                continue
-
-            if name == '.lq.FastTest.checkNetworkDelay':
-                continue
-
-            if name == '.lq.FastTest.fetchGamePlayerState':
-                # TODO: 各プレイヤの接続状態の確認．
-                continue
-
-            if name == '.lq.NotifyPlayerConnectionState':
-                # TODO: 各プレイヤの接続状態の確認
-                continue
-
-            if name == '.lq.NotifyGameBroadcast':
-                # TODO: スタンプその他の処理
-                continue
-
-            if name == '.lq.PlayerLeaving':
-                # TODO: 離席判定をくらった場合の対処
+            if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                self.__on_common_message(message)
                 continue
 
             if name == '.lq.FastTest.inputOperation':
@@ -396,45 +395,8 @@ timestamp: {timestamp}''', screenshot)
                     'Unexpected message order', rpa.get_screenshot())
             direction, name, request, response, timestamp = message
 
-            if name == '.lq.Lobby.heatbeat':
-                continue
-
-            if name == '.lq.NotifyReviveCoinUpdate':
-                # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                logging.info(message)
-                continue
-
-            if name == '.lq.NotifyGiftSendRefresh':
-                # 同上．
-                logging.info(message)
-                continue
-
-            if name == '.lq.NotifyDailyTaskUpdate':
-                # 同上．
-                logging.info(message)
-                continue
-
-            if name == '.lq.NotifyShopUpdate':
-                # 同上．
-                logging.info(message)
-                continue
-
-            if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                # 同上．
-                logging.info(message)
-                continue
-
-            if name == '.lq.NotifyAnnouncementUpdate':
-                # 告知の更新があった場合．
-                logging.info(message)
-                continue
-
-            if name == '.lq.FastTest.authGame':
-                # ゲーム中にまれにやり取りされる．
-                logging.info(message)
-                continue
-
-            if name == '.lq.FastTest.checkNetworkDelay':
+            if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                self.__on_common_message(message)
                 continue
 
             if name == '.lq.Lobby.fetchAccountInfo':
@@ -514,42 +476,19 @@ timestamp: {timestamp}''', screenshot)
                     'Unexpected message order', rpa.get_screenshot())
             direction, name, request, response, timestamp = message
 
-            if name == '.lq.Lobby.heatbeat':
+            if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                self.__on_common_message(message)
                 continue
 
-            if name == '.lq.NotifyReviveCoinUpdate':
-                # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                continue
-
-            if name == '.lq.NotifyGiftSendRefresh':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyDailyTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyShopUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAnnouncementUpdate':
-                # 告知の更新があった場合．
-                continue
-
-            if name == '.lq.FastTest.authGame':
-                # ゲーム中にまれにやり取りされる．
-                continue
-
-            if name == '.lq.FastTest.checkNetworkDelay':
+            if name == '.lq.FastTest.inputChiPengGang':
+                # `.lq.FastTest.inputChiPengGang` のレスポンスメッセージが
+                # 遅れて返ってくることがあるので，それに対する workaround．
+                logging.info(message)
                 continue
 
             if name == '.lq.NotifyActivityChange':
                 # TODO: メッセージ内容の解析
+                logging.info(message)
                 continue
 
             if name == '.lq.FastTest.confirmNewRound':
@@ -563,42 +502,8 @@ timestamp: {timestamp}''', screenshot)
                     if message is None:
                         continue
                     direction, name, request, response, timestamp = message
-                    if name == '.lq.Lobby.heatbeat':
-                        continue
-                    if name == '.lq.NotifyReviveCoinUpdate':
-                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                        continue
-                    if name == '.lq.NotifyGiftSendRefresh':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyDailyTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyShopUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAnnouncementUpdate':
-                        # 告知の更新があった場合．
-                        continue
-                    if name == '.lq.FastTest.authGame':
-                        # ゲーム中にまれにやり取りされる．
-                        continue
-                    if name == '.lq.FastTest.checkNetworkDelay':
-                        continue
-                    if name == '.lq.FastTest.fetchGamePlayerState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        continue
-                    if name == '.lq.NotifyPlayerConnectionState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        continue
-                    if name == '.lq.NotifyGameBroadcast':
-                        # TODO: スタンプその他の処理
-                        continue
-                    if name == '.lq.PlayerLeaving':
-                        # TODO: 離席判定をくらった場合の対処
+                    if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                        self.__on_common_message(message)
                         continue
                     if name == '.lq.ActionPrototype':
                         step, action_name, data = _common.parse_action(request)
@@ -635,44 +540,8 @@ timestamp: {timestamp}''', screenshot)
                     if next_message is None:
                         continue
                     _, next_name, _, _, _ = next_message
-                    if next_name == '.lq.Lobby.heatbeat':
-                        continue
-                    if next_name == '.lq.NotifyReviveCoinUpdate':
-                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                        continue
-                    if next_name == '.lq.NotifyGiftSendRefresh':
-                        # 同上．
-                        continue
-                    if next_name == '.lq.NotifyDailyTaskUpdate':
-                        # 同上．
-                        continue
-                    if next_name == '.lq.NotifyShopUpdate':
-                        # 同上．
-                        continue
-                    if next_name == '.lq.NotifyAccountChallengeTaskUpdate':
-                        # 同上．
-                        continue
-                    if next_name == '.lq.NotifyAnnouncementUpdate':
-                        # 告知の更新があった場合．
-                        continue
-                    if next_name == '.lq.FastTest.authGame':
-                        # ゲーム中にまれにやり取りされる．
-                        continue
-                    if next_name == '.lq.FastTest.checkNetworkDelay':
-                        raise InconsistentMessage(
-                            next_message, rpa.get_screenshot())
-                    if next_name == '.lq.FastTest.fetchGamePlayerState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        raise InconsistentMessage(
-                            next_message, rpa.get_screenshot())
-                    if next_name == '.lq.NotifyPlayerConnectionState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        continue
-                    if next_name == '.lq.NotifyGameBroadcast':
-                        # TODO: スタンプその他の処理
-                        continue
-                    if next_name == '.lq.PlayerLeaving':
-                        # TODO: 離席判定をくらった場合の対処
+                    if next_name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                        self.__on_common_message(next_message)
                         continue
                     if next_name == '.lq.ActionPrototype':
                         raise InconsistentMessage(
@@ -715,50 +584,8 @@ timestamp: {timestamp}''', screenshot)
             message = self._get_redis().dequeue_message(deadline - now)
             direction, name, request, response, timestamp = message
 
-            if name == '.lq.Lobby.heatbeat':
-                continue
-
-            if name == '.lq.NotifyReviveCoinUpdate':
-                # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                continue
-
-            if name == '.lq.NotifyGiftSendRefresh':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyDailyTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyShopUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                # 同上．
-                continue
-
-            if name == '.lq.NotifyAnnouncementUpdate':
-                # 告知の更新があった場合．
-                continue
-
-            if name == '.lq.FastTest.authGame':
-                # ゲーム中にまれにやり取りされる．
-                continue
-
-            if name == '.lq.FastTest.checkNetworkDelay':
-                continue
-
-            if name == '.lq.FastTest.fetchGamePlayerState':
-                # TODO: 各プレイヤの接続状態の確認．
-                continue
-
-            if name == '.lq.NotifyPlayerConnectionState':
-                # TODO: 各プレイヤの接続状態の確認
-                continue
-
-            if name == '.lq.NotifyGameBroadcast':
-                # TODO: スタンプその他の処理
+            if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                self.__on_common_message(message)
                 continue
 
             if name == '.lq.ActionPrototype':
@@ -851,10 +678,6 @@ timestamp: {timestamp}''', screenshot)
                 continue
 
             if name == '.lq.FastTest.inputChiPengGang':
-                continue
-
-            if name == '.lq.PlayerLeaving':
-                # TODO: 離席判定をくらった場合の対処
                 continue
 
             raise InconsistentMessage(f'''An inconsistent message:
@@ -1004,42 +827,8 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                     if message is None:
                         continue
                     direction, name, request, response, timestamp = message
-                    if name == '.lq.Lobby.heatbeat':
-                        continue
-                    if name == '.lq.NotifyReviveCoinUpdate':
-                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                        continue
-                    if name == '.lq.NotifyGiftSendRefresh':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyDailyTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyShopUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAnnouncementUpdate':
-                        # 告知の更新があった場合．
-                        continue
-                    if name == '.lq.FastTest.authGame':
-                        # ゲーム中にまれにやり取りされる．
-                        continue
-                    if name == '.lq.FastTest.checkNetworkDelay':
-                        continue
-                    if name == '.lq.FastTest.fetchGamePlayerState':
-                        # TODO: 各プレイヤの接続状態の確認．
-                        continue
-                    if name == '.lq.NotifyPlayerConnectionState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        continue
-                    if name == '.lq.NotifyGameBroadcast':
-                        # TODO: スタンプその他の処理
-                        continue
-                    if name == '.lq.PlayerLeaving':
-                        # TODO: 離席判定をくらった場合の対処
+                    if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                        self.__on_common_message(message)
                         continue
                     if name == '.lq.FastTest.inputOperation':
                         raise InconsistentMessage(message, rpa.get_screenshot())
@@ -1100,42 +889,8 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                         raise NotImplementedError
                     direction, name, request, response, timestamp = message
-                    if name == '.lq.Lobby.heatbeat':
-                        continue
-                    if name == '.lq.NotifyReviveCoinUpdate':
-                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                        continue
-                    if name == '.lq.NotifyGiftSendRefresh':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyDailyTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyShopUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAnnouncementUpdate':
-                        # 告知の更新があった場合．
-                        continue
-                    if name == '.lq.FastTest.authGame':
-                        # ゲーム中にまれにやり取りされる．
-                        continue
-                    if name == '.lq.FastTest.checkNetworkDelay':
-                        continue
-                    if name == '.lq.FastTest.fetchGamePlayerState':
-                        # TODO: 各プレイヤの接続状態の確認．
-                        continue
-                    if name == '.lq.NotifyPlayerConnectionState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        continue
-                    if name == '.lq.NotifyGameBroadcast':
-                        # TODO: スタンプその他の処理
-                        continue
-                    if name == '.lq.PlayerLeaving':
-                        # TODO: 離席判定をくらった場合の対処
+                    if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                        self.__on_common_message(message)
                         continue
                     if name == '.lq.ActionPrototype':
                         step, action_name, data = _common.parse_action(request)
@@ -1237,42 +992,8 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                         raise NotImplementedError
                     direction, name, request, response, timestamp = message
-                    if name == '.lq.Lobby.heatbeat':
-                        continue
-                    if name == '.lq.NotifyReviveCoinUpdate':
-                        # 日付（06:00:00 (UTC+0900)）を跨いだ場合．
-                        continue
-                    if name == '.lq.NotifyGiftSendRefresh':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyDailyTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyShopUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAccountChallengeTaskUpdate':
-                        # 同上．
-                        continue
-                    if name == '.lq.NotifyAnnouncementUpdate':
-                        # 告知の更新があった場合．
-                        continue
-                    if name == '.lq.FastTest.authGame':
-                        # ゲーム中にまれにやり取りされる．
-                        continue
-                    if name == '.lq.FastTest.checkNetworkDelay':
-                        continue
-                    if name == '.lq.FastTest.fetchGamePlayerState':
-                        # TODO: 各プレイヤの接続状態の確認．
-                        continue
-                    if name == '.lq.NotifyPlayerConnectionState':
-                        # TODO: 各プレイヤの接続状態の確認
-                        continue
-                    if name == '.lq.NotifyGameBroadcast':
-                        # TODO: スタンプその他の処理
-                        continue
-                    if name == '.lq.PlayerLeaving':
-                        # TODO: 離席判定をくらった場合の対処
+                    if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                        self.__on_common_message(message)
                         continue
                     if name == '.lq.ActionPrototype':
                         step, action_name, data = _common.parse_action(request)
