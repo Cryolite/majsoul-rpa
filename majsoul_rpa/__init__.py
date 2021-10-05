@@ -160,27 +160,25 @@ class RPA(object):
             screenshot = self.get_screenshot()
 
             try:
-                from majsoul_rpa.presentation import AuthPresentation
-                return AuthPresentation(screenshot)
-            except PresentationNotDetected as e:
-                pass
-
-            try:
                 from majsoul_rpa.presentation import LoginPresentation
                 return LoginPresentation(screenshot)
             except PresentationNotDetected as e:
                 pass
 
             try:
-                from majsoul_rpa.presentation import HomePresentation
-                return HomePresentation(screenshot, self.__redis)
+                from majsoul_rpa.presentation import AuthPresentation
+                return AuthPresentation(screenshot)
             except PresentationNotDetected as e:
                 pass
 
             try:
-                from majsoul_rpa.presentation import RoomHostPresentation
-                return RoomHostPresentation._create(
-                    screenshot, self._get_redis())
+                from majsoul_rpa.presentation import HomePresentation
+                # `HomePresentation` に遷移している場合で，告知が
+                # 表示されているならばそれらを閉じる．
+                now = datetime.datetime.now(datetime.timezone.utc)
+                HomePresentation._close_notifications(
+                    self.__browser, deadline - now)
+                return HomePresentation(screenshot, self.__redis)
             except PresentationNotDetected as e:
                 pass
 

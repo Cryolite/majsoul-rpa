@@ -19,6 +19,37 @@ class HomePresentation(PresentationBase):
         return True
 
     @staticmethod
+    def _close_notifications(
+        browser: BrowserBase, timeout: TimeoutType) -> None:
+        # ホーム画面の告知が表示されている場合にそれらを閉じる．
+
+        if isinstance(timeout, (int, float,)):
+            timeout = datetime.timedelta(seconds=timeout)
+        deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
+
+        template0 = Template.open('template/home/notification_close')
+        template1 = Template.open('template/home/event_close')
+        while True:
+            if datetime.datetime.now(datetime.timezone.utc) > deadline:
+                raise Timeout('Timeout.', browser.get_screenshot())
+
+            screenshot = browser.get_screenshot()
+
+            x, y, score = template0.best_template_match(screenshot)
+            if score >= 0.99:
+                browser.click_region(x, y, 30, 30)
+                time.sleep(1.0)
+                continue
+
+            x, y, score = template1.best_template_match(screenshot)
+            if score >= 0.99:
+                browser.click_region(x, y, 71, 71)
+                time.sleep(1.0)
+                continue
+
+            break
+
+    @staticmethod
     def _wait(browser: BrowserBase, timeout: TimeoutType) -> None:
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
@@ -29,28 +60,9 @@ class HomePresentation(PresentationBase):
         template.wait_for(browser, deadline - now)
 
         if not HomePresentation.__match_markers(browser.get_screenshot()):
-            # ホーム画面に告知が表示されている場合それらを閉じる．
-            template0 = Template.open('template/home/notification_close')
-            template1 = Template.open('template/home/event_close')
-            while True:
-                if datetime.datetime.now(datetime.timezone.utc) > deadline:
-                    raise Timeout('Timeout.', browser.get_screenshot())
-
-                screenshot = browser.get_screenshot()
-
-                x, y, score = template0.best_template_match(screenshot)
-                if score >= 0.99:
-                    browser.click_region(x, y, 30, 30)
-                    time.sleep(1.0)
-                    continue
-
-                x, y, score = template1.best_template_match(screenshot)
-                if score >= 0.99:
-                    browser.click_region(x, y, 71, 71)
-                    time.sleep(1.0)
-                    continue
-
-                break
+            # ホーム画面に告知が表示されている場合にそれらを閉じる．
+            now = datetime.datetime.now(datetime.timezone.utc)
+            HomePresentation._close_notifications(browser, deadline - now)
 
             while True:
                 if datetime.datetime.now(datetime.timezone.utc) > deadline:
