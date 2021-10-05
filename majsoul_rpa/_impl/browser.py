@@ -81,6 +81,9 @@ class BrowserBase(object):
         else:
             raise NotImplementedError(platform.system())
 
+    def refresh(self) -> None:
+        raise NotImplementedError
+
     def write(self, message: str, interval: float) -> None:
         raise NotImplementedError
 
@@ -124,6 +127,9 @@ class DesktopBrowser(BrowserBase):
 
     def fullscreen(self) -> None:
         self.__driver.fullscreen_window()
+
+    def refresh(self) -> None:
+        self.__driver.refresh()
 
     def write(self, message: str, interval) -> None:
         pyautogui.write(message, interval=interval)
@@ -198,6 +204,13 @@ class RemoteBrowser(BrowserBase):
 
     def activate(self) -> None:
         pass
+
+    def refresh(self) -> None:
+        request = {'type': 'refresh'}
+        response = self.__communicate(request)
+        if response['result'] != 'O.K.':
+            raise RuntimeError(
+                'Failed to send a message to the remote browser.')
 
     def write(self, message: str, interval: float) -> None:
         request = {'type': 'write', 'message': message, 'interval': interval}

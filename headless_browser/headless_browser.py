@@ -110,6 +110,10 @@ def main(driver) -> None:
             driver.fullscreen_window()
             response = {'result': 'O.K.'}
             respond(response)
+        elif message['type'] == 'refresh':
+            driver.refresh()
+            response = {'result': 'O.K.'}
+            respond(response)
         elif message['type'] == 'write':
             s = message['message']
             interval = message['interval']
