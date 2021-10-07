@@ -154,8 +154,13 @@ class Template(object):
             browser.click_region(x, y, image.width, image.height, edge_sigma)
 
     def wait_for_then_click(
-        self, browser: BrowserBase, timeout: TimeoutType,
+        self, rpa_or_browser, timeout: TimeoutType,
         edge_sigma: float=0.2) -> None:
+        from majsoul_rpa import RPA
+        if isinstance(rpa_or_browser, RPA):
+            browser = rpa_or_browser._get_browser()
+        else:
+            browser: BrowserBase = rpa_or_browser
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
         self.wait_until_then_click(

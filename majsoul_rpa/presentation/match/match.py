@@ -11,7 +11,7 @@ from majsoul_rpa._impl import (Redis, BrowserBase, Template,)
 from majsoul_rpa import RPA, common
 from majsoul_rpa.presentation.presentation_base import (
     Timeout, InconsistentMessage, PresentationNotDetected, InvalidOperation,
-    PresentationBase,)
+    RebootRequest, PresentationBase,)
 import majsoul_rpa.presentation.match._common as _common
 from majsoul_rpa.presentation.match.event import (
     NewRoundEvent, ZimoEvent, DapaiEvent, ChiPengGangEvent, AngangJiagangEvent,
@@ -99,6 +99,13 @@ class MatchPresentation(PresentationBase):
             # ゲーム中にまれにやり取りされる．
             logging.info(message)
             return
+
+        if name == '.lq.Lobby.oauth2Login':
+            # 通信が切断後，再接続した場合．
+            logging.warning(message)
+            if request['reconnect']:
+                raise RebootRequest(message)
+            raise InconsistentMessage(message)
 
         if name == '.lq.FastTest.checkNetworkDelay':
             return

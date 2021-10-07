@@ -41,6 +41,11 @@ class InvalidOperation(ErrorBase):
         super(InvalidOperation, self).__init__(message, screenshot)
 
 
+class RebootRequest(ErrorBase):
+    def __init__(self, message: str, screenshot: Optional[Image]=None) -> None:
+        super(RebootRequest, self).__init__(message, screenshot)
+
+
 class PresentationBase(object):
     def __init__(self, redis: Optional[Redis]) -> None:
         self.__redis = redis
