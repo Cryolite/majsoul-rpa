@@ -10,9 +10,10 @@ class LiujuEvent(EventBase):
     def __init__(self, data: object, timestamp: datetime.datetime) -> None:
         super(LiujuEvent, self).__init__(timestamp)
 
-        if data['type'] not in (1, 4):
+        if data['type'] not in (1, 2, 4):
             raise NotImplementedError(data['type'])
-        self.__type = (None, '九種九牌', None, None, '四家立直')[data['type']]
+        self.__type = (
+            None, '九種九牌', '四風連打', None, '四家立直')[data['type']]
         if self.__type == '九種九牌':
             self.__seat = data['seat']
         else:
