@@ -47,6 +47,7 @@ class MatchPresentation(PresentationBase):
         '.lq.NotifyAccountUpdate',
         '.lq.NotifyAnnouncementUpdate',
         '.lq.FastTest.authGame',
+        '.lq.Lobby.oauth2Login',
         '.lq.FastTest.checkNetworkDelay',
         '.lq.FastTest.fetchGamePlayerState',
         '.lq.NotifyPlayerConnectionState',
@@ -111,23 +112,23 @@ class MatchPresentation(PresentationBase):
             return
 
         if name == '.lq.FastTest.fetchGamePlayerState':
-            # TODO: 各プレイヤの接続状態の確認
             logging.info(message)
+            # TODO: 各プレイヤの接続状態の確認
             return
 
         if name == '.lq.NotifyPlayerConnectionState':
-            # TODO: 各プレイヤの接続状態の確認
             logging.info(message)
+            # TODO: 各プレイヤの接続状態の確認
             return
 
         if name == '.lq.NotifyGameBroadcast':
-            # TODO: スタンプその他の処理
             logging.info(message)
+            # TODO: スタンプその他の処理
             return
 
         if name == '.lq.PlayerLeaving':
-            # TODO: 離席判定をくらった場合の対処
             logging.info(message)
+            # TODO: 離席判定をくらった場合の対処
             return
 
         raise AssertionError(message)
@@ -165,17 +166,21 @@ class MatchPresentation(PresentationBase):
             direction, name, request, response, timestamp = message
 
             if name == '.lq.Lobby.modifyRoom':
+                logging.info(message)
                 continue
 
             if name == '.lq.NotifyRoomGameStart':
+                logging.info(message)
                 uuid = request['game_uuid']
                 self.__match_state._set_uuid(uuid)
                 continue
 
             if name == '.lq.Lobby.startRoom':
+                logging.info(message)
                 continue
 
             if name == '.lq.FastTest.authGame':
+                logging.info(message)
                 uuid = request['game_uuid']
                 self.__match_state._set_uuid(uuid)
 
@@ -212,23 +217,29 @@ class MatchPresentation(PresentationBase):
                 continue
 
             if name == '.lq.FastTest.enterGame':
+                logging.info(message)
                 # TODO: 中断した対戦の再開処理？
                 continue
 
             if name == '.lq.NotifyPlayerLoadGameReady':
+                logging.info(message)
                 continue
 
             if name == '.lq.ActionPrototype':
                 step, action_name, data = _common.parse_action(request)
+                action_info = {
+                    'step': step, 'action_name': action_name, 'data': data
+                }
                 if step != self.__step:
-                    raise InconsistentMessage(
-                        'An inconsistent message.', self.screenshot)
+                    raise InconsistentMessage(action_info, self.screenshot)
                 self.__step += 1
 
                 if action_name == 'ActionMJStart':
+                    logging.info(action_info)
                     continue
 
                 if action_name == 'ActionNewRound':
+                    logging.info(action_info)
                     self.__events.append(NewRoundEvent(data, timestamp))
                     self.__round_state = RoundState(self.__match_state, data)
                     if 'operation' in data:
@@ -237,10 +248,7 @@ class MatchPresentation(PresentationBase):
                         self.__operation_list = OperationList(data['operation'])
                     return
 
-                raise InconsistentMessage(f'''An inconsistent action:
-step: {step}
-name: {action_name}
-action: {data}''', screenshot)
+                raise InconsistentMessage(action_info, screenshot)
 
             # `.lq.FastTest.authGame` に関する条件文は，この条件文より
             # 先になければならない．
@@ -248,12 +256,7 @@ action: {data}''', screenshot)
                 self.__on_common_message(message)
                 continue
 
-            raise InconsistentMessage(f'''An inconsistent message:
-direction: {direction}
-name: {name}
-request: {request}
-response: {response}
-timestamp: {timestamp}''', screenshot)
+            raise InconsistentMessage(message, screenshot)
 
     @property
     def uuid(self) -> str:
@@ -377,14 +380,18 @@ timestamp: {timestamp}''', screenshot)
                 continue
 
             if name == '.lq.FastTest.inputOperation':
+                logging.info(message)
                 break
 
             if name == '.lq.FastTest.inputChiPengGang':
+                logging.info(message)
                 break
 
             if name == '.lq.ActionPrototype':
+                logging.info(message)
                 break
 
+        # 先読みしたメッセージの埋め戻し．
         rpa._get_redis().put_back(message)
 
     def __on_end_of_match(self, rpa, deadline: datetime.datetime) -> None:
@@ -407,38 +414,38 @@ timestamp: {timestamp}''', screenshot)
                 continue
 
             if name == '.lq.Lobby.fetchAccountInfo':
+                logging.info(message)
                 # TODO: メッセージ内容の処理．
                 # イベント中のみ？
-                logging.info(message)
                 continue
 
             if name == '.lq.NotifyAccountUpdate':
-                # TODO: メッセージ内容の処理．
                 logging.info(message)
+                # TODO: メッセージ内容の処理．
                 continue
 
             if name == '.lq.NotifyGameFinishReward':
-                # TODO: メッセージ内容の処理．
                 logging.info(message)
+                # TODO: メッセージ内容の処理．
                 continue
 
             if name == '.lq.NotifyActivityReward':
-                # TODO: メッセージ内容の処理．
                 logging.info(message)
+                # TODO: メッセージ内容の処理．
                 continue
 
             if name == '.lq.NotifyActivityPoint':
-                # TODO: メッセージ内容の処理．
                 logging.info(message)
+                # TODO: メッセージ内容の処理．
                 continue
 
             if name == '.lq.NotifyLeaderboardPoint':
-                # TODO: メッセージ内容の処理．
                 logging.info(message)
+                # TODO: メッセージ内容の処理．
                 continue
 
             if name == '.lq.Lobby.fetchRoom':
-                # 先読みしたメッセージの埋め戻し
+                # 先読みしたメッセージの埋め戻し．
                 self._get_redis().put_back(message)
 
                 # 報酬取得時などの追加の「確認」ボタンがあればクリックする．
@@ -494,12 +501,13 @@ timestamp: {timestamp}''', screenshot)
                 continue
 
             if name == '.lq.NotifyActivityChange':
-                # TODO: メッセージ内容の解析
                 logging.info(message)
+                # TODO: メッセージ内容の解析
                 continue
 
             if name == '.lq.FastTest.confirmNewRound':
                 # 対局終了時 (次局がある場合)
+                logging.info(message)
                 while True:
                     # `ActionNewRound` メッセージを待つ．
                     if datetime.datetime.now(datetime.timezone.utc) > deadline:
@@ -514,10 +522,17 @@ timestamp: {timestamp}''', screenshot)
                         continue
                     if name == '.lq.ActionPrototype':
                         step, action_name, data = _common.parse_action(request)
+                        action_info = {
+                            'step': step,
+                            'action_name': action_name,
+                            'data': data
+                        }
                         if action_name == 'ActionNewRound':
+                            # 先読みしたメッセージの埋め戻し．
                             rpa._get_redis().put_back(message)
                             break
-                        raise InconsistentMessage(message, rpa.get_screenshot())
+                        raise InconsistentMessage(
+                            action_info, rpa.get_screenshot())
                     raise InconsistentMessage(message, rpa.get_screenshot())
 
                 now = datetime.datetime.now(datetime.timezone.utc)
@@ -535,8 +550,11 @@ timestamp: {timestamp}''', screenshot)
                 # `ActionNewRound` メッセージの順序が逆転する場合があるので，
                 # その場合に対する workaround.
                 step, action_name, data = _common.parse_action(request)
+                action_info = {
+                    'step': step, 'action_name': action_name, 'data': data
+                }
                 if action_name != 'ActionNewRound':
-                    raise InconsistentMessage(message, rpa.get_screenshot())
+                    raise InconsistentMessage(action_info, rpa.get_screenshot())
                 while True:
                     # `.lq.FastTest.confirmNewRound` のレスポンスメッセージを
                     # 待つ．
@@ -554,9 +572,11 @@ timestamp: {timestamp}''', screenshot)
                         raise InconsistentMessage(
                             next_message, rpa.get_screenshot())
                     if next_name == '.lq.FastTest.confirmNewRound':
+                        logging.info(next_name)
                         break
                     raise InconsistentMessage(
                         next_message, rpa.get_screenshot())
+                # `ActionNewRound` を埋め戻す．
                 rpa._get_redis().put_back(message)
                 now = datetime.datetime.now(datetime.timezone.utc)
                 MatchPresentation._wait(rpa._get_browser(), deadline - now)
@@ -570,6 +590,7 @@ timestamp: {timestamp}''', screenshot)
 
             if name == '.lq.NotifyGameEndResult':
                 # ゲーム終了時
+                logging.info(message)
                 # TODO: メッセージ内容の処理．
                 template = Template.open('template/match/match_result_confirm')
                 template.wait_until_then_click(rpa._get_browser(), deadline)
@@ -597,20 +618,22 @@ timestamp: {timestamp}''', screenshot)
 
             if name == '.lq.ActionPrototype':
                 step, action_name, data = _common.parse_action(request)
+                action_info = {
+                    'step': step, 'action_name': action_name, 'data': data
+                }
+
                 if step != self.__step:
-                    raise InconsistentMessage(
-                        'An inconsistent message.', rpa.get_screenshot())
+                    raise InconsistentMessage(action_info, rpa.get_screenshot())
                 self.__step += 1
 
                 if action_name == 'ActionMJStart':
-                    raise InconsistentMessage(
-                        'An inconsistent message.', rpa.get_screenshot())
+                    raise InconsistentMessage(action_info, rpa.get_screenshot())
 
                 if action_name == 'ActionNewRound':
-                    raise InconsistentMessage(
-                        'An inconsistent message.', rpa.get_screenshot())
+                    raise InconsistentMessage(action_info, rpa.get_screenshot())
 
                 if action_name == 'ActionDealTile':
+                    logging.info(action_info)
                     self.__events.append(ZimoEvent(data, timestamp))
                     self.__round_state._on_zimo(data)
                     if 'operation' in data:
@@ -620,6 +643,7 @@ timestamp: {timestamp}''', screenshot)
                     return
 
                 if action_name == 'ActionDiscardTile':
+                    logging.info(action_info)
                     self.__events.append(DapaiEvent(data, timestamp))
                     self.__round_state._on_dapai(data)
                     if 'operation' in data:
@@ -629,6 +653,7 @@ timestamp: {timestamp}''', screenshot)
                     return
 
                 if action_name == 'ActionChiPengGang':
+                    logging.info(action_info)
                     self.__events.append(ChiPengGangEvent(data, timestamp))
                     self.__round_state._on_chipenggang(data)
                     if 'operation' in data:
@@ -638,6 +663,7 @@ timestamp: {timestamp}''', screenshot)
                     return
 
                 if action_name == 'ActionAnGangAddGang':
+                    logging.info(action_info)
                     self.__events.append(AngangJiagangEvent(data, timestamp))
                     self.__round_state._on_angang_jiagang(data)
                     if 'operation' in data:
@@ -647,6 +673,7 @@ timestamp: {timestamp}''', screenshot)
                     return
 
                 if action_name == 'ActionHule':
+                    logging.info(action_info)
                     self.__events.append(HuleEvent(data, timestamp))
 
                     template = Template.open('template/match/hule_confirm')
@@ -658,6 +685,7 @@ timestamp: {timestamp}''', screenshot)
                     return
 
                 if action_name == 'ActionNoTile':
+                    logging.info(action_info)
                     self.__events.append(NoTileEvent(data, timestamp))
 
                     template = Template.open('template/match/no_tile_confirm')
@@ -676,23 +704,21 @@ timestamp: {timestamp}''', screenshot)
                     return
 
                 if action_name == 'ActionLiuJu':
+                    logging.info(action_info)
                     self.__events.append(LiujuEvent(data, timestamp))
 
                     self.__on_end_of_round(rpa, deadline)
                     return
 
             if name == '.lq.FastTest.inputOperation':
+                logging.info(message)
                 continue
 
             if name == '.lq.FastTest.inputChiPengGang':
+                logging.info(message)
                 continue
 
-            raise InconsistentMessage(f'''An inconsistent message:
-direction: {direction}
-name: {name}
-request: {request}
-response: {response}
-timestamp: {timestamp}''', rpa.get_screenshot())
+            raise InconsistentMessage(message, rpa.get_screenshot())
 
     def wait(self, rpa, timeout: TimeoutType=300.0):
         self._assert_not_stale()
@@ -843,6 +869,7 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         break
                     if name == '.lq.ActionPrototype':
                         break
+                # 先読みしたメッセージを埋め戻す．
                 rpa._get_redis().put_back(message)
                 rpa._click_region(14, 610, 43, 44, edge_sigma=1.0)
             else:
@@ -903,6 +930,7 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         step, action_name, data = _common.parse_action(request)
                         if action_name in ('ActionChiPengGang', 'ActionHule',):
                             # 他家のポン，槓もしくは栄和に邪魔されていた．
+                            # 先読みしたメッセージを埋め戻す．
                             rpa._get_redis().put_back(message)
                             self.__operation_list = None
                             now = datetime.datetime.now(datetime.timezone.utc)
@@ -985,7 +1013,7 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                 Template.wait_for_one_of_then_click(
                     templates, rpa._get_browser(), timeout=5.0)
             except Timeout as e:
-                # TODO: 他家の栄和に邪魔された可能性がある．
+                # 他家の栄和に邪魔された可能性がある．
                 while True:
                     if datetime.datetime.now(datetime.timezone.utc) > deadline:
                         ss = rpa.get_screenshot()
@@ -1006,6 +1034,7 @@ timestamp: {timestamp}''', rpa.get_screenshot())
                         step, action_name, data = _common.parse_action(request)
                         if action_name == 'ActionHule':
                             # 他家の栄和に邪魔されていた．
+                            # 先読みしたメッセージを埋め戻す．
                             rpa._get_redis().put_back(message)
                             self.__operation_list = None
                             now = datetime.datetime.now(datetime.timezone.utc)
@@ -1070,6 +1099,7 @@ timestamp: {timestamp}''', rpa.get_screenshot())
             try:
                 template.wait_for_then_click(rpa._get_browser(), 10.0)
             except Timeout as e:
+                # TODO: 他家の栄和に邪魔された可能性がある．
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
