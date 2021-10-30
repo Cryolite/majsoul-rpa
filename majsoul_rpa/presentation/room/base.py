@@ -97,7 +97,7 @@ response: {response}
 timestamp: {timestamp}''', None)
 
     @property
-    def room_id(self):
+    def room_id(self) -> int:
         return self.__room_id
 
     @property

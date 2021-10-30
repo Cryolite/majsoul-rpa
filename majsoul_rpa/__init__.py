@@ -100,7 +100,7 @@ class RPA(object):
             self.__docker_client = None
 
     def get_account_id(self) -> Optional[int]:
-        return self.__redis.get_account_id()
+        return self.__redis.account_id
 
     def get_screenshot(self) -> Image:
         return self.__browser.get_screenshot()
@@ -178,7 +178,9 @@ class RPA(object):
                 now = datetime.datetime.now(datetime.timezone.utc)
                 HomePresentation._close_notifications(
                     self.__browser, deadline - now)
-                return HomePresentation(screenshot, self.__redis)
+                now = datetime.datetime.now(datetime.timezone.utc)
+                return HomePresentation(
+                    screenshot, self.__redis, deadline - now)
             except PresentationNotDetected as e:
                 pass
 

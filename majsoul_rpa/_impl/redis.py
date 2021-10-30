@@ -12,7 +12,7 @@ from majsoul_rpa._impl import mahjongsoul_pb2
 from majsoul_rpa.common import TimeoutType
 
 
-Message = Tuple[str, str, object, object, datetime.datetime]
+Message = Tuple[str, str, object, Optional[object], datetime.datetime]
 
 
 class Redis(object):
@@ -38,22 +38,23 @@ class Redis(object):
         '.lq.Lobby.createRoom': ['room', 'owner_id'],
     }
 
-    def dequeue_message(self, timeout: TimeoutType=0.0) -> Optional[Message]:
-        if len(self.__put_back_messages) > 0:
-            return self.__put_back_messages.pop(0)
-
+    def dequeue_message(self, timeout: TimeoutType) -> Optional[Message]:
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
 
         if timeout.total_seconds() <= 0.0:
-            message: Optional[bytes] = self.__redis.lpop('message_queue')
-        else:
-            message: Optional[bytes] = self.__redis.blpop(
-                'message_queue', timeout.total_seconds())
-            if message is not None:
-                _, message = message
+            return None
+
+        if len(self.__put_back_messages) > 0:
+            return self.__put_back_messages.pop(0)
+
+        message: Optional[Tuple[str, bytes]] = self.__redis.blpop(
+            'message_queue', timeout.total_seconds())
         if message is None:
             return None
+        assert(message[0] == b'message_queue')
+        _, message = message
+
         message = message.decode('UTF-8')
         message = json.loads(message)
         request_direction: str = message['request_direction']
@@ -163,5 +164,6 @@ Output of `protoc --decode_raw`
     def put_back(self, message: Message) -> None:
         self.__put_back_messages.insert(0, message)
 
-    def get_account_id(self) -> Optional[int]:
+    @property
+    def account_id(self) -> Optional[int]:
         return self.__account_id

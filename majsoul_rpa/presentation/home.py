@@ -2,10 +2,11 @@
 
 import datetime
 import time
+import logging
 from PIL.Image import Image
 from majsoul_rpa.common import TimeoutType
 from majsoul_rpa._impl import (BrowserBase, Template, Redis)
-from majsoul_rpa.presentation.presentation_base import PresentationBase
+from majsoul_rpa.presentation.presentation_base import InconsistentMessage, PresentationBase
 from majsoul_rpa.presentation import (Timeout, PresentationNotDetected)
 
 
@@ -29,6 +30,8 @@ class HomePresentation(PresentationBase):
 
         template0 = Template.open('template/home/notification_close')
         template1 = Template.open('template/home/event_close')
+        template2 = Template.open('template/home/visit_to_shrine')
+        template3 = Template.open('template/home/visited_to_shrine')
         while True:
             if datetime.datetime.now(datetime.timezone.utc) > deadline:
                 raise Timeout('Timeout.', browser.get_screenshot())
@@ -45,6 +48,12 @@ class HomePresentation(PresentationBase):
             if score >= 0.99:
                 browser.click_region(x, y, 71, 71)
                 time.sleep(1.0)
+                continue
+
+            x, y, score = template2.best_template_match(screenshot)
+            if score >= 0.97:
+                browser.click_region(x, y, 210, 68)
+                template3.wait_until_then_click(browser, deadline)
                 continue
 
             break
@@ -70,15 +79,195 @@ class HomePresentation(PresentationBase):
                 if HomePresentation.__match_markers(browser.get_screenshot()):
                     break
 
-    def __init__(self, screenshot: Image, redis: Redis) -> None:
+    def __init__(
+        self, screenshot: Image, redis: Redis, timeout: TimeoutType) -> None:
         super(HomePresentation, self).__init__(redis)
+
+        if isinstance(timeout, (int, float,)):
+            timeout = datetime.timedelta(seconds=timeout)
+        deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
 
         if not HomePresentation.__match_markers(screenshot):
             raise PresentationNotDetected(
                 'Could not detect `home`.', screenshot)
 
-        while self._get_redis().dequeue_message() is not None:
-            pass
+        num_login_beats = 0
+        while True:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            message = self._get_redis().dequeue_message(deadline - now)
+            if message is None:
+                raise Timeout('Timeout.', screenshot)
+            direction, name, request, response, timestamp = message
+
+            if name == '.lq.Lobby.heatbeat':
+                continue
+
+            if name == '.lq.NotifyAccountUpdate':
+                logging.info(message)
+                # TODO: メッセージ内容の解析．
+                continue
+
+            if name == '.lq.Lobby.oauth2Auth':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.oauth2Check':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.oauth2Login':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchLastPrivacy':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchServerTime':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchServerSettings':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchConnectionInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchClientValue':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchFriendList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchFriendApplyList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchMailInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchDailyTask':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchReviveCoinInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchTitleList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchBagInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchShopInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchActivityList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAccountActivityData':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchActivityBuff':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchVipReward':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchMonthTicketInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAchievement':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchSelfGamePointRank':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchCommentSetting':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAccountSettings':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchModNicknameTime':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchMisc':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAnnouncement':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchRollingNotice':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.loginSuccess':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchCharacterInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAllCommonViews':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.loginBeat':
+                logging.info(message)
+                num_login_beats += 1
+                if num_login_beats == 2:
+                    break
+                continue
+
+            if name == '.lq.Lobby.fetchCollectedGameRecordList':
+                logging.info(message)
+                continue
+
+            raise InconsistentMessage(message, screenshot)
+
+        while True:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            message = self._get_redis().dequeue_message(0.1)
+            if message is None:
+                break
+            direction, name, request, response, timestamp = message
+
+            if name == '.lq.NotifyAccountUpdate':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.readAnnouncement':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.doActivitySignIn':
+                logging.info(message)
+                continue
+
+            raise InconsistentMessage(message, screenshot)
 
     def create_room(self, rpa, timeout: TimeoutType=60.0) -> None:
         self._assert_not_stale()
@@ -113,5 +302,7 @@ class HomePresentation(PresentationBase):
         now = datetime.datetime.now(datetime.timezone.utc)
         RoomHostPresentation._wait(rpa._get_browser(), deadline - now)
 
-        p = RoomHostPresentation._create(rpa.get_screenshot(), rpa._get_redis())
+        now = datetime.datetime.now(datetime.timezone.utc)
+        p = RoomHostPresentation._create(
+            rpa.get_screenshot(), rpa._get_redis(), deadline - now)
         self._set_new_presentation(p)

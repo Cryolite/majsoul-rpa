@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import datetime
-import copy
 import time
+import logging
 from typing import (List, Iterable)
 from PIL.Image import Image
 from majsoul_rpa.common import TimeoutType
@@ -27,42 +27,52 @@ class RoomHostPresentation(RoomPresentationBase):
             redis, room_id, max_num_players, players, num_cpus)
 
     @staticmethod
-    def _create(screenshot: Image, redis: Redis) -> 'RoomHostPresentation':
+    def _create(
+        screenshot: Image, redis: Redis,
+        timeout: TimeoutType) -> 'RoomHostPresentation':
+        if isinstance(timeout, (int, float,)):
+            timeout = datetime.timedelta(seconds=timeout)
+        deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
+
         template = Template.open('template/room/marker')
         if not template.match(screenshot):
             raise PresentationNotDetected(
                 'Could not detect `room`.', screenshot)
 
         while True:
-            message = redis.dequeue_message()
+            now = datetime.datetime.now(datetime.timezone.utc)
+            message = redis.dequeue_message(deadline - now)
             if message is None:
-                raise InconsistentMessage(
-                    '`.lq.Lobby.createRoom` not found.', screenshot)
+                raise Timeout('Timeout.', screenshot)
             direction, name, request, response, timestamp = message
+
             if name == '.lq.Lobby.createRoom':
+                logging.info(message)
                 break
 
-        if direction != 'outbound':
-            raise InconsistentMessage(
-                '`.lq.Lobby.createRoom` is not outbound.', screenshot)
-        # TODO: ルール詳細の記録
-        if response is None:
-            raise InconsistentMessage(
-                '`.lq.Lobby.createRoom` does not have any response.',
-                screenshot)
+            if name == '.lq.Lobby.fetchRoom':
+                logging.info(message)
+                break
+
+            raise InconsistentMessage(message, screenshot)
 
         room: dict = response['room']
         room_id: int = room['room_id']
+        owner_id: int = room['owner_id']
+        if owner_id != redis.account_id:
+            raise InconsistentMessage(message, screenshot)
         max_num_players: int = room['max_player_count']
-        if len(room['persons']) != 1:
-            raise InconsistentMessage(
-                'An inconsistent `.lq.Lobby.createRoom` message.', screenshot)
-        host = room['persons'][0]
-        player = RoomPlayer(host['account_id'], host['nickname'], True, True)
-        players = [player]
+        ready_list: List[int] = room['ready_list']
+        players = []
+        for person in room['persons']:
+            account_id = person['account_id']
+            player = RoomPlayer(
+                account_id, person['nickname'], account_id == owner_id,
+                account_id in ready_list)
+        num_cpus = room['robot_count']
 
         return RoomHostPresentation(
-            screenshot, redis, room_id, max_num_players, players, 0)
+            screenshot, redis, room_id, max_num_players, players, num_cpus)
 
     @staticmethod
     def _return_from_match(
@@ -80,7 +90,8 @@ class RoomHostPresentation(RoomPresentationBase):
             if datetime.datetime.now(datetime.timezone.utc) > deadline:
                 raise Timeout('Timeout', browser.get_screenshot())
 
-            message = redis.dequeue_message()
+            now = datetime.datetime.now(datetime.timezone.utc)
+            message = redis.dequeue_message(deadline - now)
             if message is None:
                 break
             direction, name, request, response, timestamp = message
