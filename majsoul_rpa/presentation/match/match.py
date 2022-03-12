@@ -178,6 +178,18 @@ class MatchPresentation(PresentationBase):
             direction, name, request, response, timestamp = message
 
             if name == '.lq.Lobby.modifyRoom':
+                # 友人戦開始後に友人戦待機部屋の変更に関する API の
+                # レスポンスメッセージが返ってきた場合．
+                logging.info(message)
+                continue
+
+            if name == '.lq.NotifyRoomPlayerUpdate':
+                # 友人戦開始後に友人戦待機部屋の変更通知が送られてきた場合．
+                logging.info(message)
+                continue
+
+            if name == '.lq.NotifyRoomPlayerReady':
+                # 同上．
                 logging.info(message)
                 continue
 
