@@ -194,6 +194,7 @@ class MatchPresentation(PresentationBase):
                 continue
 
             if name == '.lq.NotifyRoomGameStart':
+                # 友人戦開始．
                 logging.info(message)
                 uuid = request['game_uuid']
                 self.__match_state._set_uuid(uuid)
