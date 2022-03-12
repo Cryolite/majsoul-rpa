@@ -8,7 +8,7 @@ from PIL.Image import Image
 from majsoul_rpa._impl.redis import Message
 from majsoul_rpa.common import TimeoutType
 from majsoul_rpa._impl import (Redis, BrowserBase, Template,)
-from majsoul_rpa import RPA, common
+from majsoul_rpa import common
 from majsoul_rpa.presentation.presentation_base import (
     Timeout, InconsistentMessage, PresentationNotDetected, InvalidOperation,
     RebootRequest, PresentationBase,)
@@ -421,6 +421,7 @@ class MatchPresentation(PresentationBase):
         rpa._get_redis().put_back(message)
 
     def __reset_to_prev_presentation(self, rpa, timeout: TimeoutType) -> None:
+        from majsoul_rpa import RPA
         rpa: RPA = rpa
 
         if isinstance(timeout, (int, float,)):
@@ -591,6 +592,7 @@ class MatchPresentation(PresentationBase):
         # workaround. この場合，次局の `.lq.ActionPrototype` メッセージが
         # `step` 順に来ないことがあるので， `step` 順に並べ替える
         # workaround も行う．
+        from majsoul_rpa import RPA
         rpa: RPA = rpa
         if message is None:
             raise ValueError('`message` is `None`.')
@@ -762,6 +764,7 @@ class MatchPresentation(PresentationBase):
 
     def __on_sync_game(
         self, rpa, message: Message, deadline: datetime.datetime) -> None:
+        from majsoul_rpa import RPA
         rpa: RPA = rpa
 
         direction, name, request, response, timestamp = message
@@ -980,6 +983,12 @@ class MatchPresentation(PresentationBase):
 
                         if name1 in MatchPresentation.__COMMON_MESSAGE_NAMES:
                             self.__on_common_message(message1)
+                            continue
+
+                        if name1 == '.lq.FastTest.inputOperation':
+                            # 自摸和の選択に対するレスポンスメッセージが
+                            # `ActionHule` の後に飛んできた場合．
+                            logging.info(message1)
                             continue
 
                         if name1 == '.lq.FastTest.inputChiPengGang':
@@ -1230,6 +1239,10 @@ class MatchPresentation(PresentationBase):
             return
 
         if isinstance(operation, ChiOperation):
+            # 手牌の上にカーソルがあると和牌候補が表示されて
+            # テンプレートマッチングを邪魔することがあるので
+            # 手牌が無い適当な位置にカーソルを移動する．
+            rpa._move_to_region(987, 806, 132, 57, edge_sigma=1.0)
             templates = tuple(
                 Template.open(f'template/match/chi{i}') for i in range(2))
             try:
