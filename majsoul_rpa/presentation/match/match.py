@@ -1338,6 +1338,10 @@ class MatchPresentation(PresentationBase):
                     ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                     raise AssertionError(len(operation.combinations))
                 rpa._click_region(left, 691, 160, 120)
+            # チーの直後に手牌の一部がスライドする場合があるため，
+            # そのスライドが終わるのを待つための sleep を入れないと
+            # 捨て牌選択で意図しない牌をクリックする可能性がある．
+            time.sleep(1.0)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1399,6 +1403,10 @@ class MatchPresentation(PresentationBase):
                     ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                     raise AssertionError(len(operation.combinations))
                 rpa._click_region(left, 691, 160, 120)
+            # ポンの直後に手牌の一部がスライドする場合があるため，
+            # そのスライドが終わるのを待つための sleep を入れないと
+            # 捨て牌選択で意図しない牌をクリックする可能性がある．
+            time.sleep(1.0)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1424,6 +1432,10 @@ class MatchPresentation(PresentationBase):
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                 raise NotImplementedError
+            # 暗槓の直後に手牌の一部がスライドする場合があるため，
+            # そのスライドが終わるのを待つための sleep を入れないと
+            # 捨て牌選択で意図しない牌をクリックする可能性がある．
+            time.sleep(1.0)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1444,6 +1456,10 @@ class MatchPresentation(PresentationBase):
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                 raise NotImplementedError
+            # 大明槓の直後に手牌の一部がスライドする場合があるため，
+            # そのスライドが終わるのを待つための sleep を入れないと
+            # 捨て牌選択で意図しない牌をクリックする可能性がある．
+            time.sleep(1.0)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1467,6 +1483,10 @@ class MatchPresentation(PresentationBase):
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
                 raise NotImplementedError
+            # 加槓の直後に手牌の一部がスライドする場合があるため，
+            # そのスライドが終わるのを待つための sleep を入れないと
+            # 捨て牌選択で意図しない牌をクリックする可能性がある．
+            time.sleep(1.0)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
