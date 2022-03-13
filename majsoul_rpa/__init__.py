@@ -99,7 +99,9 @@ class RPA(object):
             self.__docker_client.close()
             self.__docker_client = None
 
-    def get_account_id(self) -> Optional[int]:
+    def get_account_id(self) -> int:
+        if self.__redis.account_id is None:
+            raise RuntimeError('`account_id` has not been fetched yet.')
         return self.__redis.account_id
 
     def get_screenshot(self) -> Image:
