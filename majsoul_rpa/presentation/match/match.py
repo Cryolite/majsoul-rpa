@@ -349,11 +349,11 @@ class MatchPresentation(PresentationBase):
 
     @property
     def first_draw(self) -> bool:
-        return self.__round_state.__first_draw[self.seat]
+        return self.__round_state.first_draw[self.seat]
 
     @property
     def yifa(self) -> List[bool]:
-        return self.__round_state.__yifa
+        return self.__round_state.yifa
 
     @property
     def lingshang_zimo(self) -> bool:
@@ -1233,6 +1233,11 @@ class MatchPresentation(PresentationBase):
 
         if isinstance(operation, DapaiOperation):
             # 打牌
+            if self.ju == self.seat and self.first_draw:
+                # 自分が親であるとき，配牌の演出で牌が動いているので，
+                # その演出が終了するまで待ってから打牌しないと
+                # 意図しない牌をクリックして捨ててしまう場合がある．
+                time.sleep(1.0)
             self.__dapai(rpa, index, operation.forbidden_tiles)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
