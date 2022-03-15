@@ -2,7 +2,6 @@
 
 import datetime
 import time
-from typing import (Union,)
 from PIL.Image import Image
 from majsoul_rpa.common import TimeoutType
 from majsoul_rpa._impl import (Template, BrowserBase,)
@@ -19,8 +18,7 @@ class AuthPresentation(PresentationBase):
     def __init__(self, screenshot: Image) -> None:
         super(AuthPresentation, self).__init__(redis=None)
 
-        self.__mail_address = ''
-        self.__auth_code = ''
+        self.__mail_address = None
 
         template = Template.open('template/auth/marker')
         if not template.match(screenshot):
@@ -28,10 +26,9 @@ class AuthPresentation(PresentationBase):
                 'Could not detect `LoginPresentation`.', screenshot)
 
     def get_mail_address(self) -> str:
+        if self.__mail_address is None:
+            raise ValueError('Mail address has not been entered yet.')
         return self.__mail_address
-
-    def get_auth_code(self) -> str:
-        return self.__auth_code
 
     def enter_mail_address(
         self, rpa, mail_address: str, timeout: TimeoutType=10.0) -> None:
@@ -40,7 +37,7 @@ class AuthPresentation(PresentationBase):
         from majsoul_rpa import RPA
         rpa: RPA = rpa
 
-        if self.__mail_address != '':
+        if self.__mail_address is not None:
             raise InvalidOperation(
                 'Mail address has been already entered.', rpa.get_screenshot())
 
@@ -68,14 +65,13 @@ class AuthPresentation(PresentationBase):
         time.sleep(0.1)
 
     def enter_auth_code(
-        self, rpa, auth_code: Union[int, str],
-        timeout: TimeoutType=120.0) -> None:
+        self, rpa, auth_code: str, timeout: TimeoutType=120.0) -> None:
         self._assert_not_stale()
 
         from majsoul_rpa import RPA
         rpa: RPA = rpa
 
-        if self.__mail_address == '':
+        if self.__mail_address is None:
             raise InvalidOperation(
                 'Mail address has not been entered yet.', rpa.get_screenshot())
 
@@ -83,16 +79,13 @@ class AuthPresentation(PresentationBase):
             timeout = datetime.timedelta(seconds=timeout)
         deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
 
-        self.__auth_code = str(auth_code)
-
         # 「認証コード」のテキストボックスをクリックしてフォーカス
         rpa._click_region(433, 510, 288, 55)
 
         # テキストボックスに認証コードを入力
         rpa._press_hotkey('ctrl', 'a')
         rpa._press('backspace')
-        rpa._write(self.__auth_code)
-        self.__auth_code = auth_code
+        rpa._write(auth_code)
 
         # 「ログイン」ボタンが有効化されるのを待つ
         template = Template.open('template/auth/login')
@@ -107,5 +100,5 @@ class AuthPresentation(PresentationBase):
         timeout = deadline - datetime.datetime.now(datetime.timezone.utc)
         HomePresentation._wait(rpa._get_browser(), timeout)
 
-        p = HomePresentation(rpa.get_screenshot(), rpa._get_redis())
+        p = HomePresentation(rpa.get_screenshot(), rpa._get_redis(), 60.0)
         self._set_new_presentation(p)
