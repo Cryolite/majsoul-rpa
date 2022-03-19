@@ -154,6 +154,10 @@ def main(driver) -> None:
             ac.perform
             response = {'result': 'O.K.'}
             respond(response)
+        elif message['type'] == 'scroll':
+            clicks = message['clicks']
+            response = {'result': 'Error: Not implemented.'}
+            respond(response)
         elif message['type'] == 'click':
             x = message['x']
             y = message['y']

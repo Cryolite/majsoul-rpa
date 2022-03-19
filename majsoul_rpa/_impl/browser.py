@@ -98,6 +98,9 @@ class BrowserBase(object):
         edge_sigma: float=2.0, warp: bool=False) -> None:
         raise NotImplementedError
 
+    def scroll(self, clicks: int) -> None:
+        raise NotImplementedError
+
     def click_region(
         self, left: int, top: int, width: int, height: int,
         edge_sigma: float=2.0, warp: bool=False) -> None:
@@ -155,6 +158,21 @@ class DesktopBrowser(BrowserBase):
             distance = math.sqrt((xx - x) ** 2.0 + (yy - y) ** 2.0)
             duration = 0.1 + 0.4 * math.sqrt(distance / 1980.0)
         pyautogui.moveTo(xx, yy, duration, pyautogui.easeInOutSine)
+
+    def scroll(self, clicks: int) -> None:
+        if clicks == 0:
+            return
+
+        if clicks > 0:
+            delta = 58 * 2
+        else:
+            assert(clicks < 0)
+            delta = -58 * 2
+            clicks = abs(clicks)
+        pyautogui.scroll(delta)
+        for i in range(clicks - 1):
+            time.sleep(0.1)
+            pyautogui.scroll(delta)
 
     def click_region(
         self, left: int, top: int, width: int, height: int,
@@ -240,6 +258,13 @@ class RemoteBrowser(BrowserBase):
         edge_sigma: float=2.0, warp: bool=False) -> None:
         x, y = _get_random_point_in_region(left, top, width, height, edge_sigma)
         request = {'type': 'move', 'x': x, 'y': y}
+        response = self.__communicate(request)
+        if response['result'] != 'O.K.':
+            raise RuntimeError(
+                'Failed to send a message to the remote browser.')
+
+    def scroll(self, clicks: int) -> None:
+        request = {'type': 'scroll', 'clicks': clicks}
         response = self.__communicate(request)
         if response['result'] != 'O.K.':
             raise RuntimeError(

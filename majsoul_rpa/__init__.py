@@ -131,6 +131,9 @@ class RPA(object):
         self.__browser.move_to_region(
             left, top, width, height, edge_sigma=edge_sigma, warp=warp)
 
+    def _scroll(self, clicks: int) -> None:
+        self.__browser.scroll(clicks)
+
     def _click_region(
         self, left: int, top: int, width: int, height: int,
         edge_sigma: float=2.0, warp: bool=False) -> None:
