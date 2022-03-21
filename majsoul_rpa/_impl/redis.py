@@ -60,7 +60,7 @@ class Redis(object):
         request_direction: str = message['request_direction']
         request: str = message['request']
         response: Optional[str] = message['response']
-        timestamp: float = message['timestamp']
+        timestamp = message['timestamp']
 
         # JSON 化するためにエンコードしていたデータをデコードする．
         request = base64.b64decode(request)
