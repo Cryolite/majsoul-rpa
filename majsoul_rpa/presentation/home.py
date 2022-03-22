@@ -266,6 +266,10 @@ class HomePresentation(PresentationBase):
                 logging.info(message)
                 continue
 
+            if name == '.lq.NotifyAnnouncementUpdate':
+                logging.info(message)
+                continue
+
             if name == '.lq.Lobby.readAnnouncement':
                 logging.info(message)
                 continue
