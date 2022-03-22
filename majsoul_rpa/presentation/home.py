@@ -51,9 +51,16 @@ class HomePresentation(PresentationBase):
                 continue
 
             x, y, score = template2.best_template_match(screenshot)
-            if score >= 0.97:
-                browser.click_region(x, y, 210, 68)
-                template3.wait_until_then_click(browser, deadline)
+            if score >= 0.87: # Lower bound.
+                browser.click_region(x, y, 78, 36)
+                while True:
+                    if datetime.datetime.now(datetime.timezone.utc) > deadline:
+                        raise Timeout('Timeout.', browser.get_screenshot())
+                    screenshot = browser.get_screenshot()
+                    xx, yy, score = template3.best_template_match(screenshot)
+                    if score >= 0.97: # Upper bound.
+                        browser.click_region(xx, yy, 77, 37)
+                        break
                 continue
 
             break
