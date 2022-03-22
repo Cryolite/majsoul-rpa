@@ -38,8 +38,8 @@ class MatchPresentation(PresentationBase):
                 break
 
     __COMMON_MESSAGE_NAMES = (
-        '.lq.Lobby.heatbeat', # 頻繁にやり取りされる．
-        '.lq.Lobby.loginBeat', # まれにやり取りされる．
+        '.lq.Lobby.heatbeat',
+        '.lq.Lobby.loginBeat',
         '.lq.NotifyReviveCoinUpdate',
         '.lq.NotifyGiftSendRefresh',
         '.lq.NotifyDailyTaskUpdate',
@@ -61,6 +61,12 @@ class MatchPresentation(PresentationBase):
         direction, name, request, response, timestamp = message
 
         if name == '.lq.Lobby.heatbeat':
+            # 頻繁にやり取りされる．
+            return
+
+        if name == '.lq.Lobby.loginBeat':
+            # まれにやり取りされる．
+            logging.warning(message)
             return
 
         if name == '.lq.NotifyReviveCoinUpdate':
