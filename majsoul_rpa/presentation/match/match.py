@@ -109,10 +109,10 @@ class MatchPresentation(PresentationBase):
             return
 
         if name == '.lq.Lobby.oauth2Login':
-            # 通信が切断後，再接続した場合．
             logging.warning(message)
             if request['reconnect']:
-                raise RebootRequest(message)
+                # 通信が切断後，再接続した場合．
+                return
             raise InconsistentMessage(message)
 
         if name == '.lq.FastTest.checkNetworkDelay':
@@ -1133,8 +1133,9 @@ class MatchPresentation(PresentationBase):
         top += round(height * 0.1)
         width = round(width * 0.8)
         height = round(height * 0.7) # `height * 0.8` ではクリックに失敗する．
+        # `timeout=5.0` だと画面の演出が固まった際に短すぎることがある．
         self.__robust_click_region(
-            rpa, left, top, width, height, interval=1.0, timeout=5.0,
+            rpa, left, top, width, height, interval=1.0, timeout=25.0,
             edge_sigma=1.0, warp=False)
 
     def select_operation(
@@ -1505,7 +1506,9 @@ class MatchPresentation(PresentationBase):
             rpa._move_to_region(976, 812, 147, 51, edge_sigma=1.0)
             template = Template.open('template/match/liqi')
             try:
-                template.wait_for_then_click(rpa._get_browser(), 10.0)
+                # 画面上の演出に遅延が生じた場合， `timeout=10.0` では
+                # 短すぎる可能性がある．
+                template.wait_for_then_click(rpa._get_browser(), 20.0)
             except Timeout as e:
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
