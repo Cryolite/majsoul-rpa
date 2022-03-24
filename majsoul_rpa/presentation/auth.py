@@ -5,8 +5,8 @@ import time
 from PIL.Image import Image
 from majsoul_rpa.common import TimeoutType
 from majsoul_rpa._impl import (Template, BrowserBase,)
-from majsoul_rpa.presentation.presentation_base \
-    import (InvalidOperation, PresentationNotDetected, PresentationBase)
+from majsoul_rpa.presentation.presentation_base import (
+    Timeout, InvalidOperation, PresentationNotDetected, PresentationBase,)
 
 
 class AuthPresentation(PresentationBase):
@@ -94,9 +94,31 @@ class AuthPresentation(PresentationBase):
         # 「ログイン」ボタンをクリック
         template.click(rpa._get_browser())
 
-        from majsoul_rpa.presentation import HomePresentation
+        templates = (
+            'template/home/marker0',
+            'template/match/marker0',
+            'template/match/marker1',
+            'template/match/marker2',
+            'template/match/marker3')
+        while True:
+            if datetime.datetime.now(datetime.timezone.utc) > deadline:
+                raise Timeout('Timeout.', rpa.get_screenshot())
+            index = Template.match_one_of(rpa.get_screenshot(), templates)
+            if index == 0:
+                break
+            if index in (1, 2, 3, 4,):
+                # TODO: 中断されていた対戦が再開された場合に対処する．
+                from majsoul_rpa.presentation.match import MatchPresentation
+                timeout = deadline - datetime.datetime.now(datetime.timezone.utc)
+                MatchPresentation._wait(rpa._get_browser(), timeout)
+                timeout = deadline - datetime.datetime.now(datetime.timezone.utc)
+                p = MatchPresentation(
+                    None, rpa.get_screenshot(), rpa._get_redis(), timeout)
+                self._set_new_presentation(p)
+                return
 
         # ホーム画面が表示されるまで待つ．
+        from majsoul_rpa.presentation import HomePresentation
         timeout = deadline - datetime.datetime.now(datetime.timezone.utc)
         HomePresentation._wait(rpa._get_browser(), timeout)
 

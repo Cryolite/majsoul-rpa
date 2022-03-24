@@ -3,7 +3,7 @@
 import datetime
 import time
 import logging
-from typing import (Match, Optional, Tuple, List,)
+from typing import (Optional, Tuple, List,)
 from PIL.Image import Image
 from majsoul_rpa._impl.redis import Message
 from majsoul_rpa.common import TimeoutType
@@ -147,7 +147,7 @@ class MatchPresentation(PresentationBase):
         raise AssertionError(message)
 
     def __init__(
-        self, prev_presentation: PresentationBase, screenshot: Image,
+        self, prev_presentation: Optional[PresentationBase], screenshot: Image,
         redis: Redis, timeout: TimeoutType=60.0,
         *, match_state: MatchState=MatchState()) -> None:
         super(MatchPresentation, self).__init__(redis)
@@ -455,6 +455,9 @@ class MatchPresentation(PresentationBase):
                 rpa.get_screenshot(), rpa._get_redis(), deadline - now)
             self._set_new_presentation(p)
             return
+
+        # TODO: 中断していた対戦を再開した場合に対処する．
+        # この場合， `self.__prev_presentation` は `None` になっている．
 
         raise NotImplementedError(type(self.__prev_presentation))
         return
