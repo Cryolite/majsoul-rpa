@@ -1416,6 +1416,13 @@ message NotifyActivityReward {
     repeated RewardSlot rewards = 2;
   }
 }
+message NotifyActivityRewardV2 {
+  repeated ActivityReward activity_reward = 1;
+  message ActivityReward {
+    uint32 activity_id = 1;
+    repeated RewardSlot rewards = 2;
+  }
+}
 message NotifyActivityTaskUpdate {
   repeated TaskProgress progresses = 1;
 }
