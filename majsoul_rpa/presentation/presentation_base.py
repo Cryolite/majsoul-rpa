@@ -41,10 +41,15 @@ class InvalidOperation(ErrorBase):
         super(InvalidOperation, self).__init__(message, screenshot)
 
 
-class RebootRequest(ErrorBase):
-    def __init__(self, message: str, screenshot: Optional[Image]=None) -> None:
-        super(RebootRequest, self).__init__(message, screenshot)
+class BrowserRefreshRequest(ErrorBase):
+    def __init__(
+        self, message: str, browser, screenshot: Optional[Image]=None) -> None:
+        super(BrowserRefreshRequest, self).__init__(message, screenshot)
+        from majsoul_rpa._impl.browser import BrowserBase
+        self.__browser: BrowserBase = browser
 
+    def refresh_browser(self) -> None:
+        self.__browser.refresh()
 
 class PresentationBase(object):
     def __init__(self, redis: Optional[Redis]) -> None:

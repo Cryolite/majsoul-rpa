@@ -11,7 +11,7 @@ from majsoul_rpa._impl import (Redis, BrowserBase, Template,)
 from majsoul_rpa import common
 from majsoul_rpa.presentation.presentation_base import (
     Timeout, InconsistentMessage, PresentationNotDetected, InvalidOperation,
-    RebootRequest, PresentationBase,)
+    BrowserRefreshRequest, PresentationBase,)
 import majsoul_rpa.presentation.match._common as _common
 from majsoul_rpa.presentation.match.event import (
     NewRoundEvent, ZimoEvent, DapaiEvent, ChiPengGangEvent, AngangJiagangEvent,
@@ -1023,6 +1023,16 @@ class MatchPresentation(PresentationBase):
                             # 先読みしたメッセージを埋め戻す．
                             rpa._get_redis().put_back(message1)
                             break
+
+                        # `.lq.FastTest.confirmNewRound` が
+                        # やり取りされている場合，画面の描画が
+                        # おかしくなっている可能性が高いので
+                        # ブラウザの再読み込みを要求する．
+                        if name1 == '.lq.FastTest.confirmNewRound':
+                            logging.warning(message1)
+                            raise BrowserRefreshRequest(
+                                'Request to refresh the browser.',
+                                rpa._get_browser(), rpa.get_screenshot())
 
                         raise InconsistentMessage(message1)
 
