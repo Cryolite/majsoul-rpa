@@ -1241,12 +1241,21 @@ class MatchPresentation(PresentationBase):
                 # クリックすると「スキップ」以外のボタンがクリックされる
                 # 可能性がある．そのため，クリックする region を若干右側に
                 # 限定している．
-                #self.__robust_click_region(
-                #    rpa, 1227, 811, 164, 50, interval=0.2, timeout=5.0,
-                #    edge_sigma=1.0, warp=True)
-                self.__robust_click_region(
-                    rpa, 1309, 811, 82, 50, interval=0.2, timeout=5.0,
-                    edge_sigma=1.0, warp=True)
+                try:
+                    #self.__robust_click_region(
+                    #    rpa, 1227, 811, 164, 50, interval=0.2, timeout=20.0,
+                    #    edge_sigma=1.0, warp=True)
+                    self.__robust_click_region(
+                        rpa, 1309, 811, 82, 50, interval=0.2, timeout=20.0,
+                        edge_sigma=1.0, warp=True)
+                except Timeout as e:
+                    # 画面の描画が乱れて「スキップ」ボタンをクリックできない
+                    # 状態になっている可能性が高い．従って，ブラウザの
+                    # リフレッシュを促す．
+                    raise BrowserRefreshRequest(
+                        'A rendering problem may occur.', rpa._get_browser(),
+                        rpa.get_screenshot())
+
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
