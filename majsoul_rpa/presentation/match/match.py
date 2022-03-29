@@ -744,13 +744,19 @@ class MatchPresentation(PresentationBase):
                         self.__workaround_for_skipped_confirm_new_round(
                             rpa, message, deadline)
                         return
-
                     if next_name == '.lq.FastTest.confirmNewRound':
                         logging.info(next_name)
                         break
+                    if data['ju'] == self.seat:
+                        # 次局の親が自分である場合．
+                        # 極めて稀な状況で， `.lq.FastTest.confirmNewRound` の
+                        # レスポンスメッセージが返ってこない場合がある？
+                        logging.warning(message)
+                        break
                     raise InconsistentMessage(
                         next_message, rpa.get_screenshot())
-                # `ActionNewRound` を埋め戻す．
+                # `ActionNewRound` を Redis のメッセージキューに埋め戻した上で
+                # 制御フローをユーザ側に返す．
                 rpa._get_redis().put_back(message)
                 now = datetime.datetime.now(datetime.timezone.utc)
                 MatchPresentation._wait(rpa._get_browser(), deadline - now)
