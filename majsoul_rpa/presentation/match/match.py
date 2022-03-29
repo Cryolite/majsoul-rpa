@@ -1233,10 +1233,10 @@ class MatchPresentation(PresentationBase):
                 # 限定している．
                 try:
                     #self.__robust_click_region(
-                    #    rpa, 1227, 811, 164, 50, interval=0.2, timeout=20.0,
+                    #    rpa, 1227, 811, 164, 50, interval=0.2, timeout=5.0,
                     #    edge_sigma=1.0, warp=True)
                     self.__robust_click_region(
-                        rpa, 1309, 811, 82, 50, interval=0.2, timeout=20.0,
+                        rpa, 1309, 811, 82, 50, interval=0.2, timeout=5.0,
                         edge_sigma=1.0, warp=True)
                 except Timeout as e:
                     # 画面の描画が乱れて「スキップ」ボタンをクリックできない
@@ -1524,14 +1524,14 @@ class MatchPresentation(PresentationBase):
             rpa._move_to_region(976, 812, 147, 51, edge_sigma=1.0)
             template = Template.open('template/match/liqi')
             try:
-                # 画面上の演出に遅延が生じた場合， `timeout=10.0` では
-                # 短すぎる可能性がある．
-                template.wait_for_then_click(rpa._get_browser(), 20.0)
+                template.wait_for_then_click(rpa._get_browser(), 5.0)
             except Timeout as e:
-                ss = rpa.get_screenshot()
-                now = datetime.datetime.now(datetime.timezone.utc)
-                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise
+                # 画面の描画が乱れて「立直」ボタンをクリックできない
+                # 状態になっている可能性が高い．従って，ブラウザの
+                # リフレッシュを促す．
+                raise BrowserRefreshRequest(
+                    'A rendering problem may occur.', rpa._get_browser(),
+                    rpa.get_screenshot())
             if index < len(self.shoupai):
                 if self.shoupai[index] not in operation.candidate_dapai_list:
                     raise InvalidOperation(index, rpa.get_screenshot())
@@ -1554,12 +1554,14 @@ class MatchPresentation(PresentationBase):
             rpa._move_to_region(966, 807, 154, 56, edge_sigma=1.0)
             template = Template.open('template/match/zimohu')
             try:
-                template.wait_for_then_click(rpa._get_browser(), 10.0)
+                template.wait_for_then_click(rpa._get_browser(), 5.0)
             except Timeout as e:
-                ss = rpa.get_screenshot()
-                now = datetime.datetime.now(datetime.timezone.utc)
-                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                # 画面の描画が乱れて「ツモ」ボタンをクリックできない
+                # 状態になっている可能性が高い．従って，ブラウザの
+                # リフレッシュを促す．
+                raise BrowserRefreshRequest(
+                    'A rendering problem may occur.', rpa._get_browser(),
+                    rpa.get_screenshot())
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1568,12 +1570,14 @@ class MatchPresentation(PresentationBase):
         if isinstance(operation, RongOperation):
             template = Template.open('template/match/rong')
             try:
-                template.wait_for_then_click(rpa._get_browser(), 10.0)
+                template.wait_for_then_click(rpa._get_browser(), 5.0)
             except Timeout as e:
-                ss = rpa.get_screenshot()
-                now = datetime.datetime.now(datetime.timezone.utc)
-                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise
+                # 画面の描画が乱れて「ロン」ボタンをクリックできない
+                # 状態になっている可能性が高い．従って，ブラウザの
+                # リフレッシュを促す．
+                raise BrowserRefreshRequest(
+                    'A rendering problem may occur.', rpa._get_browser(),
+                    rpa.get_screenshot())
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1582,12 +1586,14 @@ class MatchPresentation(PresentationBase):
         if isinstance(operation, JiuzhongjiupaiOperation):
             template = Template.open('template/match/liuju')
             try:
-                template.wait_for_then_click(rpa._get_browser(), 10.0)
+                template.wait_for_then_click(rpa._get_browser(), 5.0)
             except Timeout as e:
-                ss = rpa.get_screenshot()
-                now = datetime.datetime.now(datetime.timezone.utc)
-                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise
+                # 画面の描画が乱れて「流局」ボタンをクリックできない
+                # 状態になっている可能性が高い．従って，ブラウザの
+                # リフレッシュを促す．
+                raise BrowserRefreshRequest(
+                    'A rendering problem may occur.', rpa._get_browser(),
+                    rpa.get_screenshot())
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
