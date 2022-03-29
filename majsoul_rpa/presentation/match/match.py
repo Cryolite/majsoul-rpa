@@ -789,18 +789,6 @@ class MatchPresentation(PresentationBase):
         if request['step'] != 4294967295:
             raise InconsistentMessage(message)
 
-        if response['is_end']:
-            now = datetime.datetime.now(datetime.timezone.utc)
-            MatchPresentation._wait(rpa._get_browser(), deadline - now)
-            now = datetime.datetime.now(datetime.timezone.utc)
-            p = MatchPresentation(
-                self.__prev_presentation, rpa.get_screenshot(),
-                rpa._get_redis(), deadline - now,
-                match_state=self.__match_state)
-            self.__new_presentation = p
-        else:
-            p = self
-
         game_restore = response['game_restore']
 
         if game_restore['game_state'] != 1:
@@ -814,73 +802,75 @@ class MatchPresentation(PresentationBase):
 
         action = actions.pop(0)
         step, name, data = _common.parse_action(action)
-        if step != p.__step:
-            raise InconsistentMessage(message)
+        if step != 0:
+            raise InconsistentMessage(action)
         if name != 'ActionNewRound':
-            raise InconsistentMessage(message)
-        p.__events.append(NewRoundEvent(data, timestamp))
-        p.__round_state = RoundState(p.__match_state, data)
+            raise InconsistentMessage(action)
+        self.__step = 0
+        self.__events.clear()
+        self.__events.append(NewRoundEvent(data, timestamp))
+        self.__round_state = RoundState(self.__match_state, data)
         if 'operation' in data and len(data['operation']['operation_list']) > 0:
-            p.__operation_list = OperationList(data['operation'])
+            self.__operation_list = OperationList(data['operation'])
         else:
-            p.__operation_list = None
-        p.__step += 1
+            self.__operation_list = None
+        self.__step += 1
 
         for action in actions:
             step, name, data = _common.parse_action(action)
-            if step != p.__step:
-                raise InconsistentMessage(message)
+            if step != self.__step:
+                raise InconsistentMessage(action)
 
             if name == 'ActionDealTile':
-                p.__events.append(ZimoEvent(data, timestamp))
-                p.__round_state._on_zimo(data)
+                self.__events.append(ZimoEvent(data, timestamp))
+                self.__round_state._on_zimo(data)
                 if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    p.__operation_list = OperationList(data['operation'])
+                    self.__operation_list = OperationList(data['operation'])
                 else:
-                    p.__operation_list = None
-                p.__step += 1
+                    self.__operation_list = None
+                self.__step += 1
                 continue
 
             if name == 'ActionDiscardTile':
-                p.__events.append(DapaiEvent(data, timestamp))
-                p.__round_state._on_dapai(data)
+                self.__events.append(DapaiEvent(data, timestamp))
+                self.__round_state._on_dapai(data)
                 if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    p.__operation_list = OperationList(data['operation'])
+                    self.__operation_list = OperationList(data['operation'])
                 else:
-                    p.__operation_list = None
-                p.__step += 1
+                    self.__operation_list = None
+                self.__step += 1
                 continue
 
             if name == 'ActionChiPengGang':
-                p.__events.append(ChiPengGangEvent(data, timestamp))
-                p.__round_state._on_chipenggang(data)
+                self.__events.append(ChiPengGangEvent(data, timestamp))
+                self.__round_state._on_chipenggang(data)
                 if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    p.__operation_list = OperationList(data['operation'])
+                    self.__operation_list = OperationList(data['operation'])
                 else:
-                    p.__operation_list = None
-                p.__step += 1
+                    self.__operation_list = None
+                self.__step += 1
                 continue
 
             if name == 'ActionAnGangAddGang':
-                p.__events.append(AngangJiagangEvent(data, timestamp))
-                p.__round_state._on_angang_jiagang(data)
+                self.__events.append(AngangJiagangEvent(data, timestamp))
+                self.__round_state._on_angang_jiagang(data)
                 if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    p.__operation_list = OperationList(data['operation'])
+                    self.__operation_list = OperationList(data['operation'])
                 else:
-                    p.__operation_list = None
-                p.__step += 1
+                    self.__operation_list = None
+                self.__step += 1
                 continue
 
             if name == 'ActionHule':
-                raise InconsistentMessage(message)
+                raise InconsistentMessage(action)
 
             if name == 'ActionNoTile':
-                raise InconsistentMessage(message)
+                raise InconsistentMessage(action)
 
             if name == 'ActionLiuJu':
-                raise InconsistentMessage(message)
+                raise InconsistentMessage(action)
 
-            raise InconsistentMessage(message)
+            raise InconsistentMessage(action)
 
     def _wait_impl(self, rpa, timeout: TimeoutType=300.0) -> None:
         from majsoul_rpa import RPA
@@ -1074,7 +1064,7 @@ class MatchPresentation(PresentationBase):
                 continue
 
             if name == '.lq.FastTest.syncGame':
-                logging.info(message)
+                logging.warning(message)
                 self.__on_sync_game(rpa, message, deadline)
                 return
 
