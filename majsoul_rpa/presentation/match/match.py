@@ -1313,7 +1313,12 @@ class MatchPresentation(PresentationBase):
                     if name == '.lq.FastTest.inputOperation':
                         raise InconsistentMessage(message, rpa.get_screenshot())
                     if name == '.lq.FastTest.inputChiPengGang':
-                        raise InconsistentMessage(message, rpa.get_screenshot())
+                        # 画面の描画が乱れて「チー」ボタンをクリックできない
+                        # 状態になっている可能性が高い．従って，ブラウザの
+                        # リフレッシュを促す．
+                        raise BrowserRefreshRequest(
+                            'A rendering problem may occur.',
+                            rpa._get_browser(), rpa.get_screenshot())
                     raise InconsistentMessage(message, rpa.get_screenshot())
             if len(operation.combinations) >= 2:
                 if index is None:
@@ -1417,7 +1422,12 @@ class MatchPresentation(PresentationBase):
                     if name == '.lq.FastTest.inputOperation':
                         raise InconsistentMessage(message, rpa.get_screenshot())
                     if name == '.lq.FastTest.inputChiPengGang':
-                        raise InconsistentMessage(message, rpa.get_screenshot())
+                        # 画面の描画が乱れて「ポン」ボタンをクリックできない
+                        # 状態になっている可能性が高い．従って，ブラウザの
+                        # リフレッシュを促す．
+                        raise BrowserRefreshRequest(
+                            'A rendering problem may occur.',
+                            rpa._get_browser(), rpa.get_screenshot())
                     raise InconsistentMessage(message, rpa.get_screenshot())
             if len(operation.combinations) >= 2:
                 if len(operation.combinations) == 2:
