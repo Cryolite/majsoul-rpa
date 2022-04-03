@@ -477,6 +477,12 @@ class MatchPresentation(PresentationBase):
                 self.__on_common_message(message)
                 continue
 
+            if name == '.lq.FastTest.inputChiPengGang':
+                # `.lq.FastTest.inputChiPengGang` のレスポンスメッセージが
+                # 遅れて返ってくることがあるので，それに対する workaround．
+                logging.info(message)
+                continue
+
             if name == '.lq.Lobby.fetchAccountInfo':
                 logging.info(message)
                 # TODO: メッセージ内容の処理．
