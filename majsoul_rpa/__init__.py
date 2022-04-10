@@ -178,14 +178,8 @@ class RPA(object):
 
             try:
                 from majsoul_rpa.presentation import HomePresentation
-                # `HomePresentation` に遷移している場合で，告知が
-                # 表示されているならばそれらを閉じる．
                 now = datetime.datetime.now(datetime.timezone.utc)
-                HomePresentation._close_notifications(
-                    self.__browser, deadline - now)
-                now = datetime.datetime.now(datetime.timezone.utc)
-                return HomePresentation(
-                    screenshot, self.__redis, deadline - now)
+                return HomePresentation(screenshot, self, deadline - now)
             except PresentationNotDetected as e:
                 pass
 

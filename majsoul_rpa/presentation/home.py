@@ -86,13 +86,28 @@ class HomePresentation(PresentationBase):
                 if HomePresentation.__match_markers(browser.get_screenshot()):
                     break
 
-    def __init__(
-        self, screenshot: Image, redis: Redis, timeout: TimeoutType) -> None:
-        super(HomePresentation, self).__init__(redis)
+    def __init__(self, screenshot: Image, rpa, timeout: TimeoutType) -> None:
+        from majsoul_rpa import RPA
+        rpa: RPA = rpa
+
+        super(HomePresentation, self).__init__(rpa._get_redis())
 
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
         deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
+
+        template = Template.open(f'template/home/marker0')
+        if not template.match(screenshot):
+            raise PresentationNotDetected(
+                'Could not detect `home`.', screenshot)
+
+        # `HomePresentation` に遷移している場合で，告知が
+        # 表示されているならばそれらを閉じる．
+        now = datetime.datetime.now(datetime.timezone.utc)
+        HomePresentation._close_notifications(
+            rpa._get_browser(), deadline - now)
+
+        screenshot = rpa.get_screenshot()
 
         if not HomePresentation.__match_markers(screenshot):
             raise PresentationNotDetected(
