@@ -183,6 +183,14 @@ class RPA(object):
             except PresentationNotDetected as e:
                 pass
 
+            try:
+                from majsoul_rpa.presentation.match import MatchPresentation
+                now = datetime.datetime.now(datetime.timezone.utc)
+                return MatchPresentation(
+                    None, screenshot, self.__redis, deadline - now)
+            except PresentationNotDetected as e:
+                pass
+
             now = datetime.datetime.now(datetime.timezone.utc)
             if now > deadline:
                 raise Timeout('Timeout', self.get_screenshot())
