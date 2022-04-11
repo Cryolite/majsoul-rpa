@@ -1524,12 +1524,22 @@ class MatchPresentation(PresentationBase):
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                raise NotImplementedError()
             if len(operation.combinations) >= 2:
-                ss = rpa.get_screenshot()
-                now = datetime.datetime.now(datetime.timezone.utc)
-                ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                if len(operation.combinations) == 2:
+                    if index == 0:
+                        left = 600
+                    elif index == 1:
+                        left = 960
+                    else:
+                        raise InvalidOperation(
+                            f'{index}: out-of-range index', rpa.get_screenshot())
+                else:
+                    ss = rpa.get_screenshot()
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
+                    raise NotImplementedError()
+                rpa._click_region(left, 691, 320, 120)
             # 加槓の直後に手牌の一部がスライドする場合があるため，
             # そのスライドが終わるのを待つための sleep を入れないと
             # 捨て牌選択で意図しない牌をクリックする可能性がある．
