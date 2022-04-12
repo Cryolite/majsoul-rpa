@@ -146,6 +146,304 @@ class MatchPresentation(PresentationBase):
 
         raise AssertionError(message)
 
+    def __on_auth_game(self, redis: Redis, message: Message) -> None:
+        logging.info(message)
+        direction, name, request, response, timestamp = message
+
+        uuid = request['game_uuid']
+        self.__match_state._set_uuid(uuid)
+
+        # TODO: ゲーム設定の確認
+
+        player_map = {}
+        for p in response['players']:
+            account_id = p['account_id']
+            nickname = p['nickname']
+            level4 = common.id2level(p['level']['id'])
+            level3 = common.id2level(p['level3']['id'])
+            charid = p['character']['charid']
+            try:
+                character = common.id2character(charid)
+            except KeyError as e:
+                # キャラクタ ID が不明なキャラクタと遭遇した場合
+                logging.warning(f'{uuid}: {nickname}: charid = {charid}')
+                character = 'UNKNOWN'
+            player_map[account_id] = MatchPlayer(
+                account_id, nickname, level4, level3, character)
+        players = []
+        for i in range(4):
+            account_id = response['seat_list'][i]
+            if account_id == redis.account_id:
+                self.__match_state._set_seat(i)
+            if account_id == 0:
+                player = MatchPlayer(0, 'CPU', '初心1', '初心1', '一姫')
+                players.append(player)
+            else:
+                players.append(player_map[account_id])
+        self.__match_state._set_players(players)
+
+    def __on_sync_game(self, message: Message, *, restore: bool) -> None:
+        direction, name, request, response, timestamp = message
+        if direction != 'outbound':
+            raise ValueError(message)
+        if name != '.lq.FastTest.syncGame':
+            raise ValueError(message)
+
+        if restore:
+            if request['round_id'] != '-1':
+                raise InconsistentMessage(message)
+            if request['step'] != 1000000:
+                raise InconsistentMessage(message)
+        else:
+            if request['round_id'] != f'{self.chang}-{self.ju}-{self.ben}':
+                raise InconsistentMessage(message)
+            if request['step'] != 4294967295:
+                raise InconsistentMessage(message)
+
+        game_restore = response['game_restore']
+
+        if game_restore['game_state'] != 1:
+            raise NotImplementedError(message)
+
+        actions: List[object] = game_restore['actions']
+        if len(actions) == 0:
+            raise InconsistentMessage(message)
+        if len(actions) != response['step']:
+            raise InconsistentMessage(message)
+
+        action = actions.pop(0)
+        step, name, data = _common.parse_action(action)
+        if step != 0:
+            raise InconsistentMessage(action)
+        if name != 'ActionNewRound':
+            raise InconsistentMessage(action)
+        self.__step = 0
+        self.__events.clear()
+        self.__events.append(NewRoundEvent(data, timestamp))
+        self.__round_state = RoundState(self.__match_state, data)
+        if 'operation' in data and len(data['operation']['operation_list']) > 0:
+            self.__operation_list = OperationList(data['operation'])
+        else:
+            self.__operation_list = None
+        self.__step += 1
+
+        for action in actions:
+            step, name, data = _common.parse_action(action)
+            if step != self.__step:
+                raise InconsistentMessage(action)
+
+            if name == 'ActionDealTile':
+                self.__events.append(ZimoEvent(data, timestamp))
+                self.__round_state._on_zimo(data)
+                if 'operation' in data and len(data['operation']['operation_list']) > 0:
+                    self.__operation_list = OperationList(data['operation'])
+                else:
+                    self.__operation_list = None
+                self.__step += 1
+                continue
+
+            if name == 'ActionDiscardTile':
+                self.__events.append(DapaiEvent(data, timestamp))
+                self.__round_state._on_dapai(data)
+                if 'operation' in data and len(data['operation']['operation_list']) > 0:
+                    self.__operation_list = OperationList(data['operation'])
+                else:
+                    self.__operation_list = None
+                self.__step += 1
+                continue
+
+            if name == 'ActionChiPengGang':
+                self.__events.append(ChiPengGangEvent(data, timestamp))
+                self.__round_state._on_chipenggang(data)
+                if 'operation' in data and len(data['operation']['operation_list']) > 0:
+                    self.__operation_list = OperationList(data['operation'])
+                else:
+                    self.__operation_list = None
+                self.__step += 1
+                continue
+
+            if name == 'ActionAnGangAddGang':
+                self.__events.append(AngangJiagangEvent(data, timestamp))
+                self.__round_state._on_angang_jiagang(data)
+                if 'operation' in data and len(data['operation']['operation_list']) > 0:
+                    self.__operation_list = OperationList(data['operation'])
+                else:
+                    self.__operation_list = None
+                self.__step += 1
+                continue
+
+            if name == 'ActionHule':
+                raise InconsistentMessage(action)
+
+            if name == 'ActionNoTile':
+                raise InconsistentMessage(action)
+
+            if name == 'ActionLiuJu':
+                raise InconsistentMessage(action)
+
+            raise InconsistentMessage(action)
+
+    def __restore(
+        self, screenshot: Image, redis: Redis,
+        deadline: datetime.datetime) -> None:
+        while True:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            message = self._get_redis().dequeue_message(deadline - now)
+            if message is None:
+                raise Timeout('Timeout', screenshot)
+            direction, name, request, response, timestamp = message
+
+            if name == '.lq.Lobby.heatbeat':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.oauth2Auth':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.oauth2Check':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchLastPrivacy':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchServerTime':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchServerSettings':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchConnectionInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchClientValue':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchFriendList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchFriendApplyList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchMailInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchDailyTask':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchReviveCoinInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchTitleList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchBagInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchShopInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchActivityList':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAccountActivityData':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchActivityBuff':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchVipReward':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchMonthTicketInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAchievement':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchCommentSetting':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAccountSettings':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchModNicknameTime':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchMisc':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAnnouncement':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchRollingNotice':
+                logging.info(message)
+                continue
+
+            if name == '.lq.NotifyAccountUpdate':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.loginSuccess':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchCharacterInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchAllCommonViews':
+                logging.info(message)
+                continue
+
+            if name == '.lq.FastTest.authGame':
+                self.__on_auth_game(redis, message)
+                continue
+
+            if name == '.lq.FastTest.checkNetworkDelay':
+                logging.info(message)
+                continue
+
+            if name == '.lq.FastTest.syncGame':
+                logging.info(message)
+                self.__on_sync_game(message, restore=True)
+                continue
+
+            if name == '.lq.FastTest.fetchGamePlayerState':
+                logging.info(message)
+                continue
+
+            if name == '.lq.FastTest.finishSyncGame':
+                logging.info(message)
+                continue
+
+            raise InconsistentMessage(message, screenshot)
+
     def __init__(
         self, prev_presentation: Optional[PresentationBase], screenshot: Image,
         redis: Redis, timeout: TimeoutType=60.0,
@@ -176,6 +474,10 @@ class MatchPresentation(PresentationBase):
                 'Could not detect `match_main`.', screenshot)
 
         deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
+
+        if self.__prev_presentation is None:
+            self.__restore(screenshot, redis, deadline)
+            return
 
         while True:
             now = datetime.datetime.now(datetime.timezone.utc)
@@ -212,40 +514,7 @@ class MatchPresentation(PresentationBase):
                 continue
 
             if name == '.lq.FastTest.authGame':
-                logging.info(message)
-                uuid = request['game_uuid']
-                self.__match_state._set_uuid(uuid)
-
-                # TODO: ゲーム設定の確認
-
-                player_map = {}
-                for p in response['players']:
-                    account_id = p['account_id']
-                    nickname = p['nickname']
-                    level4 = common.id2level(p['level']['id'])
-                    level3 = common.id2level(p['level3']['id'])
-                    charid = p['character']['charid']
-                    try:
-                        character = common.id2character(charid)
-                    except KeyError as e:
-                        # キャラクタ ID が不明なキャラクタと遭遇した場合
-                        logging.warning(
-                            f'{uuid}: {nickname}: charid = {charid}')
-                        character = 'UNKNOWN'
-                    player_map[account_id] = MatchPlayer(
-                        account_id, nickname, level4, level3, character)
-                players = []
-                for i in range(4):
-                    account_id = response['seat_list'][i]
-                    if account_id == redis.account_id:
-                        self.__match_state._set_seat(i)
-                    if account_id == 0:
-                        player = MatchPlayer(
-                            0, 'CPU', '初心1', '初心1', '一姫')
-                        players.append(player)
-                    else:
-                        players.append(player_map[account_id])
-                self.__match_state._set_players(players)
+                self.__on_auth_game(redis, message)
                 continue
 
             if name == '.lq.FastTest.enterGame':
@@ -785,105 +1054,6 @@ class MatchPresentation(PresentationBase):
 
             raise InconsistentMessage(message, rpa.get_screenshot())
 
-    def __on_sync_game(
-        self, rpa, message: Message, deadline: datetime.datetime) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
-        direction, name, request, response, timestamp = message
-        if direction != 'outbound':
-            raise ValueError(message)
-        if name != '.lq.FastTest.syncGame':
-            raise ValueError(message)
-
-        if request['round_id'] != f'{self.chang}-{self.ju}-{self.ben}':
-            raise InconsistentMessage(message)
-        if request['step'] != 4294967295:
-            raise InconsistentMessage(message)
-
-        game_restore = response['game_restore']
-
-        if game_restore['game_state'] != 1:
-            raise NotImplementedError(message)
-
-        actions: List[object] = game_restore['actions']
-        if len(actions) == 0:
-            raise InconsistentMessage(message)
-        if len(actions) != response['step']:
-            raise InconsistentMessage(message)
-
-        action = actions.pop(0)
-        step, name, data = _common.parse_action(action)
-        if step != 0:
-            raise InconsistentMessage(action)
-        if name != 'ActionNewRound':
-            raise InconsistentMessage(action)
-        self.__step = 0
-        self.__events.clear()
-        self.__events.append(NewRoundEvent(data, timestamp))
-        self.__round_state = RoundState(self.__match_state, data)
-        if 'operation' in data and len(data['operation']['operation_list']) > 0:
-            self.__operation_list = OperationList(data['operation'])
-        else:
-            self.__operation_list = None
-        self.__step += 1
-
-        for action in actions:
-            step, name, data = _common.parse_action(action)
-            if step != self.__step:
-                raise InconsistentMessage(action)
-
-            if name == 'ActionDealTile':
-                self.__events.append(ZimoEvent(data, timestamp))
-                self.__round_state._on_zimo(data)
-                if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    self.__operation_list = OperationList(data['operation'])
-                else:
-                    self.__operation_list = None
-                self.__step += 1
-                continue
-
-            if name == 'ActionDiscardTile':
-                self.__events.append(DapaiEvent(data, timestamp))
-                self.__round_state._on_dapai(data)
-                if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    self.__operation_list = OperationList(data['operation'])
-                else:
-                    self.__operation_list = None
-                self.__step += 1
-                continue
-
-            if name == 'ActionChiPengGang':
-                self.__events.append(ChiPengGangEvent(data, timestamp))
-                self.__round_state._on_chipenggang(data)
-                if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    self.__operation_list = OperationList(data['operation'])
-                else:
-                    self.__operation_list = None
-                self.__step += 1
-                continue
-
-            if name == 'ActionAnGangAddGang':
-                self.__events.append(AngangJiagangEvent(data, timestamp))
-                self.__round_state._on_angang_jiagang(data)
-                if 'operation' in data and len(data['operation']['operation_list']) > 0:
-                    self.__operation_list = OperationList(data['operation'])
-                else:
-                    self.__operation_list = None
-                self.__step += 1
-                continue
-
-            if name == 'ActionHule':
-                raise InconsistentMessage(action)
-
-            if name == 'ActionNoTile':
-                raise InconsistentMessage(action)
-
-            if name == 'ActionLiuJu':
-                raise InconsistentMessage(action)
-
-            raise InconsistentMessage(action)
-
     def _wait_impl(self, rpa, timeout: TimeoutType=300.0) -> None:
         from majsoul_rpa import RPA
         rpa: RPA = rpa
@@ -1077,7 +1247,7 @@ class MatchPresentation(PresentationBase):
 
             if name == '.lq.FastTest.syncGame':
                 logging.warning(message)
-                self.__on_sync_game(rpa, message, deadline)
+                self.__on_sync_game(message, restore=False)
                 return
 
             raise InconsistentMessage(message, rpa.get_screenshot())
