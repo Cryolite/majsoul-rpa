@@ -305,6 +305,10 @@ class MatchPresentation(PresentationBase):
                 logging.info(message)
                 continue
 
+            if name == '.lq.Lobby.oauth2Login':
+                logging.info(message)
+                continue
+
             if name == '.lq.Lobby.fetchLastPrivacy':
                 logging.info(message)
                 continue
