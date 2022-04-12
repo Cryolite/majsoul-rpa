@@ -446,6 +446,18 @@ class MatchPresentation(PresentationBase):
                 logging.info(message)
                 continue
 
+            if name == '.lq.ActionPrototype':
+                redis.put_back(message)
+                break
+
+            if name == '.lq.FastTest.inputOperation':
+                redis.put_back(message)
+                break
+
+            if name == '.lq.FastTest.inputChiPengGang':
+                redis.put_back(message)
+                break
+
             raise InconsistentMessage(message, screenshot)
 
     def __init__(
