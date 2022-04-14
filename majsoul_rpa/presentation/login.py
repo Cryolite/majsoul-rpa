@@ -49,8 +49,7 @@ class LoginPresentation(PresentationBase):
             try:
                 from majsoul_rpa.presentation import HomePresentation
                 now = datetime.datetime.now(datetime.timezone.utc)
-                p = HomePresentation(
-                    screenshot, rpa._get_redis(), deadline - now)
+                p = HomePresentation(screenshot, rpa, deadline - now)
                 self._set_new_presentation(p)
                 return
             except PresentationNotDetected as e:

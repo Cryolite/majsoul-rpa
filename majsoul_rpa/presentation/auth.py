@@ -122,5 +122,5 @@ class AuthPresentation(PresentationBase):
         timeout = deadline - datetime.datetime.now(datetime.timezone.utc)
         HomePresentation._wait(rpa._get_browser(), timeout)
 
-        p = HomePresentation(rpa.get_screenshot(), rpa._get_redis(), 60.0)
+        p = HomePresentation(rpa.get_screenshot(), rpa, 60.0)
         self._set_new_presentation(p)
