@@ -56,7 +56,7 @@ class Template(object):
         if str(path).endswith('.png'):
             return Template(path)
 
-        with open(path) as f:
+        with open(path, encoding='UTF-8') as f:
             config = yaml.load(f, Loader=yaml.Loader)
 
         if 'path' in config:
