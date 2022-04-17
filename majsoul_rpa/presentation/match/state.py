@@ -149,14 +149,22 @@ class RoundState(object):
                 self.__zimopai = None
             else:
                 # 手出し．
+                index = None
                 for i, tile in enumerate(self.__shoupai):
                     if tile == data['tile']:
+                        index = i
                         break
-                assert(i < len(self.__shoupai))
-                self.__shoupai.pop(i)
-                if self.__zimopai is not None:
-                    # 自摸牌を手牌に組み入れる．
-                    self.__hand_in()
+                if index is None:
+                    # 自分が親で，かつ第一打牌である場合．
+                    assert(seat == self.__ju and self.__first_draw[seat])
+                    assert(self.__zimopai is not None)
+                    assert(self.__zimopai == data['tile'])
+                    self.__zimopai = None
+                else:
+                    self.__shoupai.pop(index)
+                    if self.__zimopai is not None:
+                        # 自摸牌を手牌に組み入れる．
+                        self.__hand_in()
             assert('operation' not in data)
 
         if len(data['doras']) > 0:
