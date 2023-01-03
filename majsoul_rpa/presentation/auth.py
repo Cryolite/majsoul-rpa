@@ -23,7 +23,7 @@ class AuthPresentation(PresentationBase):
         template = Template.open('template/auth/marker')
         if not template.match(screenshot):
             raise PresentationNotDetected(
-                'Could not detect `LoginPresentation`.', screenshot)
+                'Could not detect `AuthPresentation`.', screenshot)
 
     def get_mail_address(self) -> str:
         if self.__mail_address is None:
@@ -104,7 +104,7 @@ class AuthPresentation(PresentationBase):
             if datetime.datetime.now(datetime.timezone.utc) > deadline:
                 raise Timeout('Timeout.', rpa.get_screenshot())
             index = Template.match_one_of(rpa.get_screenshot(), templates)
-            if index == 0:
+            if index in (0,):
                 break
             if index in (1, 2, 3, 4,):
                 # TODO: 中断されていた対戦が再開された場合に対処する．
