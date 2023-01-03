@@ -89,8 +89,8 @@ class YostarLogin:
                 delete_object(key)
                 logging.info(f'Deleted the S3 object `{key}`.')
                 continue
-            if email['From'] != 'info@mail.yostar.co.jp':
-                # 差出人が `info@mail.yostar.co.jp` でないメールは
+            if email['From'] != 'passport@mail.yostar.co.jp':
+                # 差出人が `passport@mail.yostar.co.jp` でないメールは
                 # ログイン以外の用件に関するものである可能性があるので
                 # 無視する．
                 continue
