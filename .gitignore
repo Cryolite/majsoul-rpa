@@ -4,7 +4,7 @@ __pycache__
 /majsoul_rpa/_impl/mahjongsoul_pb2.py
 /bin/chromedriver*
 /bin/protoc*
-/.venv/
+/.local/
 /majsoul_rpa.egg-info/
 /build/
 /log/
