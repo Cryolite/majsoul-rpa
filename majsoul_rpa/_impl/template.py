@@ -123,7 +123,9 @@ class Template(object):
         while True:
             if datetime.datetime.now(datetime.timezone.utc) > deadline:
                 from majsoul_rpa.presentation import Timeout
-                raise Timeout('Timeout', browser.get_screenshot())
+                raise Timeout(
+                    f'Timeout in waiting {self.__path}',
+                    browser.get_screenshot())
             if self.match(browser.get_screenshot()):
                 break
 
