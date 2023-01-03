@@ -122,6 +122,10 @@ class HomePresentation(PresentationBase):
                 logging.info(message)
                 continue
 
+            if name == '.lq.NotifyNewMail':
+                logging.info(message)
+                continue
+
             if name == '.lq.Lobby.oauth2Login':
                 logging.info(message)
                 continue
@@ -154,6 +158,10 @@ class HomePresentation(PresentationBase):
                 logging.info(message)
                 continue
 
+            if name == '.lq.Lobby.fetchRecentFriend':
+                logging.info(message)
+                continue
+
             if name == '.lq.Lobby.fetchMailInfo':
                 logging.info(message)
                 continue
@@ -175,6 +183,10 @@ class HomePresentation(PresentationBase):
                 continue
 
             if name == '.lq.Lobby.fetchShopInfo':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchShopInterval':
                 logging.info(message)
                 continue
 
