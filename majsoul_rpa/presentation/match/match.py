@@ -184,6 +184,177 @@ class MatchPresentation(PresentationBase):
                 raise Timeout('Timeout', screenshot)
             direction, name, request, response, timestamp = message
 
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.oauth2Auth':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.oauth2Check':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.oauth2Login':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchLastPrivacy':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchServerTime':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchServerSettings':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchConnectionInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchClientValue':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchFriendList':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchFriendApplyList':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchRecentFriend':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchMailInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchDailyTask':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchReviveCoinInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchTitleList':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchBagInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchShopInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchShopInterval':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchActivityList':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchAccountActivityData':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchActivityBuff':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchVipReward':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchMonthTicketInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchAchievement':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchCommentSetting':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchAccountSettings':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchModNicknameTime':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchMisc':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchAnnouncement':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchRollingNotice':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.loginSuccess':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchCharacterInfo':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchAllCommonViews':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.FastTest.syncGame':
+                logging.info(message)
+                self.__on_sync_game(message)
+                continue
+
             if name == '.lq.Lobby.modifyRoom':
                 # 友人戦開始後に友人戦待機部屋の変更に関する API の
                 # レスポンスメッセージが返ってきた場合．
@@ -785,21 +956,12 @@ class MatchPresentation(PresentationBase):
 
             raise InconsistentMessage(message, rpa.get_screenshot())
 
-    def __on_sync_game(
-        self, rpa, message: Message, deadline: datetime.datetime) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+    def __on_sync_game(self, message: Message) -> None:
         direction, name, request, response, timestamp = message
         if direction != 'outbound':
             raise ValueError(message)
         if name != '.lq.FastTest.syncGame':
             raise ValueError(message)
-
-        if request['round_id'] != f'{self.chang}-{self.ju}-{self.ben}':
-            raise InconsistentMessage(message)
-        if request['step'] != 4294967295:
-            raise InconsistentMessage(message)
 
         game_restore = response['game_restore']
 
@@ -1077,7 +1239,7 @@ class MatchPresentation(PresentationBase):
 
             if name == '.lq.FastTest.syncGame':
                 logging.warning(message)
-                self.__on_sync_game(rpa, message, deadline)
+                self.__on_sync_game(message)
                 return
 
             raise InconsistentMessage(message, rpa.get_screenshot())
