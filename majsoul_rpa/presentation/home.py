@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import datetime
 import time
 import logging
@@ -104,12 +102,18 @@ class HomePresentation(PresentationBase):
             message = self._get_redis().dequeue_message(deadline - now)
             if message is None:
                 raise Timeout('Timeout.', screenshot)
-            direction, name, request, response, timestamp = message
+            _, name, _, _, _ = message
 
             if name == '.lq.Lobby.heatbeat':
+                logging.info(message)
                 continue
 
             if name == '.lq.NotifyAccountUpdate':
+                logging.info(message)
+                # TODO: メッセージ内容の解析．
+                continue
+
+            if name == '.lq.NotifyShopUpdate':
                 logging.info(message)
                 # TODO: メッセージ内容の解析．
                 continue
@@ -168,6 +172,25 @@ class HomePresentation(PresentationBase):
 
             if name == '.lq.Lobby.fetchDailyTask':
                 logging.info(message)
+
+                _break = False
+                while True:
+                    next_message = self._get_redis().dequeue_message(5)
+                    if next_message is None:
+                        # これ以上メッセージが無いならばホーム画面への遷移が完了している．
+                        _break = True
+                        break
+                    _, next_name, _, _, _ = next_message
+                    if next_name == '.lq.Lobby.heatbeat':
+                        # 後続の `.lq.Lobby.heatbeat` メッセージを読み捨てる．
+                        logging.info(next_message)
+                        continue
+                    # 先読みしたメッセージを埋め戻して次へ．
+                    self._get_redis().put_back(next_message)
+                    break
+                if _break:
+                    break
+
                 continue
 
             if name == '.lq.Lobby.fetchReviveCoinInfo':
@@ -195,6 +218,10 @@ class HomePresentation(PresentationBase):
                 continue
 
             if name == '.lq.Lobby.fetchAccountActivityData':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchActivityInterval':
                 logging.info(message)
                 continue
 
@@ -272,7 +299,27 @@ class HomePresentation(PresentationBase):
             message = self._get_redis().dequeue_message(0.1)
             if message is None:
                 break
-            direction, name, request, response, timestamp = message
+            _, name, _, _, _ = message
+
+            if name == '.lq.Lobby.heatbeat':
+                continue
+
+            if name == '.lq.Lobby.updateClientValue':
+                logging.info(message)
+                continue
+
+            if name == '.lq.Lobby.fetchDailyTask':
+                # TODO: メッセージ内容の解析
+                logging.info(message)
+
+                # これ以上メッセージが無いならばホーム画面への遷移が完了している．
+                message = self._get_redis().dequeue_message(5)
+                if message is None:
+                    return
+
+                # 先読みしたメッセージを埋め戻して次へ．
+                self._get_redis().put_back(message)
+                continue
 
             if name == '.lq.NotifyAccountUpdate':
                 logging.info(message)
