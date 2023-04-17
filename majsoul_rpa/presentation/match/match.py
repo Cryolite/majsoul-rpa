@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import datetime
 import time
 import logging
@@ -25,6 +23,8 @@ from majsoul_rpa.presentation.match.operation import(
 
 
 class MatchPresentation(PresentationBase):
+    from majsoul_rpa import RPA
+
     @staticmethod
     def _wait(browser: BrowserBase, timeout: TimeoutType=60.0) -> None:
         if isinstance(timeout, (int, float,)):
@@ -58,7 +58,7 @@ class MatchPresentation(PresentationBase):
     )
 
     def __on_common_message(self, message: Message) -> None:
-        direction, name, request, response, timestamp = message
+        _, name, request, _, _ = message
 
         if name == '.lq.Lobby.heatbeat':
             # 頻繁にやり取りされる．
@@ -85,6 +85,11 @@ class MatchPresentation(PresentationBase):
             return
 
         if name == '.lq.NotifyShopUpdate':
+            # 同上．
+            logging.info(message)
+            return
+
+        if name == '.lq.Lobby.fetchShopInterval':
             # 同上．
             logging.info(message)
             return
@@ -169,7 +174,7 @@ class MatchPresentation(PresentationBase):
                 for i in range(4):
                     template = Template.open(f'template/match/marker{i}')
                     x, y, score = template.best_template_match(screenshot)
-                    print(score)
+                    print(f'({x}, {y}): score = {score}')
                 now = datetime.datetime.now(datetime.timezone.utc)
                 screenshot.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
             raise PresentationNotDetected(
@@ -182,7 +187,7 @@ class MatchPresentation(PresentationBase):
             message = self._get_redis().dequeue_message(deadline - now)
             if message is None:
                 raise Timeout('Timeout', screenshot)
-            direction, name, request, response, timestamp = message
+            _, name, request, response, timestamp = message
 
             # 中断していた対戦を再開した時のみ．
             if name == '.lq.Lobby.oauth2Auth':
@@ -280,6 +285,11 @@ class MatchPresentation(PresentationBase):
                 continue
 
             # 中断していた対戦を再開した時のみ．
+            if name == '.lq.Lobby.fetchActivityInterval':
+                logging.info(message)
+                continue
+
+            # 中断していた対戦を再開した時のみ．
             if name == '.lq.Lobby.fetchAccountActivityData':
                 logging.info(message)
                 continue
@@ -355,6 +365,11 @@ class MatchPresentation(PresentationBase):
                 self.__on_sync_game(message)
                 continue
 
+            # 中断していた対戦を再開した時のみ．
+            if name == '.lq.FastTest.finishSyncGame':
+                logging.info(message)
+                return
+
             if name == '.lq.Lobby.modifyRoom':
                 # 友人戦開始後に友人戦待機部屋の変更に関する API の
                 # レスポンスメッセージが返ってきた場合．
@@ -398,10 +413,9 @@ class MatchPresentation(PresentationBase):
                     charid = p['character']['charid']
                     try:
                         character = common.id2character(charid)
-                    except KeyError as e:
+                    except KeyError as _:
                         # キャラクタ ID が不明なキャラクタと遭遇した場合
-                        logging.warning(
-                            f'{uuid}: {nickname}: charid = {charid}')
+                        logging.warning('%s: %s: charid = %s', uuid, nickname, charid)
                         character = 'UNKNOWN'
                     player_map[account_id] = MatchPlayer(
                         account_id, nickname, level4, level3, character)
@@ -554,12 +568,8 @@ class MatchPresentation(PresentationBase):
         return self.__events
 
     def __robust_click_region(
-        self, rpa, left: int, top: int, width: int, height: int,
-        interval: TimeoutType, timeout: Timeout, edge_sigma: float=2.0,
-        warp: bool=False) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+        self, rpa: RPA, left: int, top: int, width: int, height: int, interval: TimeoutType,
+        timeout: Timeout, edge_sigma: float=2.0, warp: bool=False) -> None:
         if isinstance(interval, (int, float,)):
             interval = datetime.timedelta(seconds=interval)
 
@@ -571,12 +581,11 @@ class MatchPresentation(PresentationBase):
             if datetime.datetime.now(datetime.timezone.utc) > deadline:
                 raise Timeout('Timeout', rpa.get_screenshot())
 
-            rpa._click_region(
-                left, top, width, height, edge_sigma=edge_sigma, warp=warp)
+            rpa._click_region(left, top, width, height, edge_sigma=edge_sigma, warp=warp)
             message = rpa._get_redis().dequeue_message(interval)
             if message is None:
                 continue
-            direction, name, request, response, timestamp = message
+            _, name, _, _, _ = message
 
             if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
                 self.__on_common_message(message)
@@ -599,10 +608,7 @@ class MatchPresentation(PresentationBase):
         # 先読みしたメッセージの埋め戻し．
         rpa._get_redis().put_back(message)
 
-    def __reset_to_prev_presentation(self, rpa, timeout: TimeoutType) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+    def __reset_to_prev_presentation(self, rpa: RPA, timeout: TimeoutType) -> None:
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
         deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
@@ -614,7 +620,7 @@ class MatchPresentation(PresentationBase):
                 raise Timeout('Timeout', rpa.get_screenshot())
             try:
                 template.wait_for_then_click(rpa._get_browser(), 5.0)
-            except Timeout as e:
+            except Timeout as _:
                 break
 
         from majsoul_rpa.presentation.room.host import RoomHostPresentation
@@ -631,18 +637,14 @@ class MatchPresentation(PresentationBase):
         # この場合， `self.__prev_presentation` は `None` になっている．
 
         raise NotImplementedError(type(self.__prev_presentation))
-        return
 
-    def __on_end_of_match(self, rpa, deadline: datetime.datetime) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+    def __on_end_of_match(self, rpa: RPA, deadline: datetime.datetime) -> None:
         while True:
             now = datetime.datetime.now(datetime.timezone.utc)
             message = self._get_redis().dequeue_message(deadline - now)
             if message is None:
                 raise Timeout('Timeout', rpa.get_screenshot())
-            direction, name, request, response, timestamp = message
+            direction, name, request, _, _ = message
 
             if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
                 self.__on_common_message(message)
@@ -683,6 +685,21 @@ class MatchPresentation(PresentationBase):
                 # TODO: メッセージ内容の処理．
                 continue
 
+            if name == '.lq.NotifyActivityPointV2':
+                logging.info(message)
+                # TODO: メッセージ内容の処理．
+
+                # これ以上メッセージが無いならばホーム画面へ戻る．
+                message = self._get_redis().dequeue_message(5)
+                if message is None:
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    self.__reset_to_prev_presentation(rpa, deadline - now)
+                    return
+
+                # 先読みしたメッセージを埋め戻して次へ．
+                self._get_redis().put_back(message)
+                continue
+
             if name == '.lq.NotifyLeaderboardPoint':
                 logging.info(message)
                 # TODO: メッセージ内容の処理．
@@ -699,13 +716,9 @@ class MatchPresentation(PresentationBase):
             raise InconsistentMessage(message, rpa.get_screenshot())
 
     def __workaround_for_reordered_actions(
-        self, rpa, message: Message, expected_step: int,
-        timeout: TimeoutType) -> Message:
+        self, rpa: RPA, message: Message, expected_step: int, timeout: TimeoutType) -> Message:
         # `.lq.ActionPrototype` が `step` 順通りに来ない場合があるので，
         # メッセージを先読みして `step` 順通りに並べ替える．
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
         if message is None:
             raise ValueError('`message` is `None`.')
         if message[1] != '.lq.ActionPrototype':
@@ -721,7 +734,7 @@ class MatchPresentation(PresentationBase):
         messages: List[Message] = []
         while True:
             assert(message is not None)
-            direction, name, request, response, timestamp = message
+            _, name, request, _, _ = message
 
             flag = False
 
@@ -753,7 +766,7 @@ class MatchPresentation(PresentationBase):
                     if m is None:
                         action_info = None
                     else:
-                        direction, name, request, response, timestamp = m
+                        _, name, request, _, _ = m
                         assert(name == '.lq.ActionPrototype')
                         step, action_name, data = _common.parse_action(request)
                         action_info = {
@@ -775,29 +788,25 @@ class MatchPresentation(PresentationBase):
                 raise Timeout('Timeout.', rpa.get_screenshot())
 
     def __workaround_for_skipped_confirm_new_round(
-        self, rpa, message: Message, deadline: datetime.datetime) -> None:
-        # `.lq.FastTest.confirmNewRound` のやり取りが飛ばされた場合の
-        # workaround. この場合，次局の `.lq.ActionPrototype` メッセージが
-        # `step` 順に来ないことがあるので， `step` 順に並べ替える
-        # workaround も行う．
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
+        self, rpa: RPA, message: Message, deadline: datetime.datetime) -> None:
+        # `.lq.FastTest.confirmNewRound` のやり取りが飛ばされた場合の workaround. この場合，次局の `.lq.ActionPrototype`
+        # メッセージが `step` 順に来ないことがあるので， `step` 順に並べ替える workaround も行う．
         if message is None:
             raise ValueError('`message` is `None`.')
-        direction, name, request, response, timestamp = message
+        _, name, request, _, _ = message
         if name != '.lq.ActionPrototype':
             raise InconsistentMessage(message, rpa.get_screenshot())
 
-        step, action_name, data = _common.parse_action(request)
+        step, action_name, _ = _common.parse_action(request)
         if step != 0:
             now = datetime.datetime.now(datetime.timezone.utc)
             message = self.__workaround_for_reordered_actions(
                 rpa, message, 0, deadline - now)
 
         assert(message is not None)
-        direction, name, request, response, timestamp = message
+        _, name, request, _, _ = message
         assert(name == '.lq.ActionPrototype')
-        step, action_name, data = _common.parse_action(request)
+        step, action_name, _ = _common.parse_action(request)
         assert(step == 0)
         assert(action_name == 'ActionNewRound')
         rpa._get_redis().put_back(message)
@@ -812,10 +821,7 @@ class MatchPresentation(PresentationBase):
         self._set_new_presentation(p)
         return
 
-    def __on_end_of_round(self, rpa, deadline: datetime.datetime) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+    def __on_end_of_round(self, rpa: RPA, deadline: datetime.datetime) -> None:
         template = Template.open('template/match/round_result_confirm')
         round_result_confirmed = False
         while True:
@@ -830,7 +836,7 @@ class MatchPresentation(PresentationBase):
             message = self._get_redis().dequeue_message(deadline - now)
             if message is None:
                 continue
-            direction, name, request, response, timestamp = message
+            _, name, request, _, _ = message
 
             if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
                 self.__on_common_message(message)
@@ -975,7 +981,7 @@ class MatchPresentation(PresentationBase):
             raise InconsistentMessage(message)
 
         action = actions.pop(0)
-        step, name, data = _common.parse_action(action)
+        step, name, data = _common.parse_action(action, restore=True)
         if step != 0:
             raise InconsistentMessage(action)
         if name != 'ActionNewRound':
@@ -991,7 +997,7 @@ class MatchPresentation(PresentationBase):
         self.__step += 1
 
         for action in actions:
-            step, name, data = _common.parse_action(action)
+            step, name, data = _common.parse_action(action, restore=True)
             if step != self.__step:
                 raise InconsistentMessage(action)
 
@@ -1046,10 +1052,7 @@ class MatchPresentation(PresentationBase):
 
             raise InconsistentMessage(action)
 
-    def _wait_impl(self, rpa, timeout: TimeoutType=300.0) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+    def _wait_impl(self, rpa: RPA, timeout: TimeoutType=300.0) -> None:
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
         deadline = datetime.datetime.now(datetime.timezone.utc) + timeout
@@ -1059,7 +1062,7 @@ class MatchPresentation(PresentationBase):
             message = self._get_redis().dequeue_message(deadline - now)
             if message is None:
                 raise Timeout('Timeout', rpa.get_screenshot())
-            direction, name, request, response, timestamp = message
+            _, name, request, _, timestamp = message
 
             if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
                 self.__on_common_message(message)
@@ -1076,7 +1079,7 @@ class MatchPresentation(PresentationBase):
                     message = self.__workaround_for_reordered_actions(
                         rpa, message, self.__step, deadline - now)
                     assert(message is not None)
-                    direction, name, request, response, timestamp = message
+                    _, name, request, _, timestamp = message
                     assert(name == '.lq.ActionPrototype')
                     step, action_name, data = _common.parse_action(request)
                     assert(step == self.__step)
@@ -1154,7 +1157,7 @@ class MatchPresentation(PresentationBase):
                         message1 = rpa._get_redis().dequeue_message(0.1)
                         if message1 is None:
                             continue
-                        direction1, name1, request1, response1, timestamp1 = message1
+                        _, name1, _, _, _ = message1
 
                         if name1 in MatchPresentation.__COMMON_MESSAGE_NAMES:
                             self.__on_common_message(message1)
@@ -1242,31 +1245,27 @@ class MatchPresentation(PresentationBase):
                 self.__on_sync_game(message)
                 return
 
+            if name == '.lq.FastTest.finishSyncGame':
+                logging.warning(message)
+                return
+
             raise InconsistentMessage(message, rpa.get_screenshot())
 
-    def wait(self, rpa, timeout: TimeoutType=300.0):
+    def wait(self, rpa: RPA, timeout: TimeoutType=300.0):
         self._assert_not_stale()
-
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
 
         if self.__operation_list is not None:
             raise InvalidOperation(
                 'Must select an operation.', rpa.get_screenshot())
         return self._wait_impl(rpa, timeout)
 
-    def __dapai(self, rpa, index: int, forbidden_tiles: List[str]) -> None:
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
-
+    def __dapai(self, rpa: RPA, index: int, forbidden_tiles: List[str]) -> None:
         if index is None:
-            raise InvalidOperation(
-                'Must specify an index for dapai.', rpa.get_screenshot())
+            raise InvalidOperation('Must specify an index for dapai.', rpa.get_screenshot())
         num_tiles = len(self.__round_state.shoupai)
         num_tiles += 0 if (self.__round_state.zimopai is None) else 1
         if index >= num_tiles:
-            raise InvalidOperation(
-                'Out of index for dapai.', rpa.get_screenshot())
+            raise InvalidOperation('Out of index for dapai.', rpa.get_screenshot())
 
         if self.zimopai is None:
             # 副露直後の打牌で食い替えできない牌を
@@ -1322,12 +1321,8 @@ class MatchPresentation(PresentationBase):
             edge_sigma=1.0, warp=False)
 
     def select_operation(
-        self, rpa, operation, index: Optional[int]=None,
-        timeout: TimeoutType=300.0) -> None:
+        self, rpa: RPA, operation, index: Optional[int]=None, timeout: TimeoutType=300.0) -> None:
         self._assert_not_stale()
-
-        from majsoul_rpa import RPA
-        rpa: RPA = rpa
 
         if isinstance(timeout, (int, float,)):
             timeout = datetime.timedelta(seconds=timeout)
@@ -1350,75 +1345,30 @@ class MatchPresentation(PresentationBase):
                     'An invalid operation.', rpa.get_screenshot())
 
         if operation is None:
-            # 選択肢をスキップする．ラグ読みされるのを防ぐため，スキップの
-            # UI 操作は可能な限り短時間で行う必要がある．この目的を
-            # 達成するために以下の工夫を行う．
-            #
-            #   * 上家以外の打牌に対するチー・ポン・カン・ロンをスキップする
-            #     場合は，「スキップ」のボタンが出現してくる場所を（ボタンが
-            #     出現するタイミング以前から）連打する．
-            #   * 上家の打牌に対するチー・ポン・カン・ロンをスキップする
-            #     場合は，「鳴き無し」ボタンをクリックすることにより
-            #     スキップする（選択肢が出た後でも「鳴き無し」ボタンを
-            #     クリックすると「スキップ」ボタンをクリックしたのと同じ
-            #     効果がある）．上家の打牌に対するスキップをこのような
-            #     特殊な操作で行う理由は，仮に上家の打牌に対するスキップを
-            #     前項と同じ方法（「スキップ」ボタンの連打）で行うと，自身の
-            #     自摸に対する選択肢（立直・ツモ・カン）もスキップしてしまう
-            #     場合があるためである．
-            skip_by_melding_off = False
-            for o in self.__operation_list:
-                if isinstance(o, (ChiOperation, PengOperation, DaminggangOperation, RongOperation,)):
-                    assert(self.prev_dapai_seat is not None)
-                    if (self.seat + 4 - self.prev_dapai_seat) % 4 == 1:
-                        skip_by_melding_off = True
-
-            if skip_by_melding_off:
-                # 上家の打牌に対する選択肢を「鳴き無し」ボタンを
-                # クリックすることでスキップする．スキップできたら再度
-                # 「鳴き無し」ボタンをクリックして鳴きができる状態に戻す．
-                rpa._click_region(14, 610, 43, 44, edge_sigma=1.0, warp=True)
-                while True:
-                    now = datetime.datetime.now(datetime.timezone.utc)
-                    message = rpa._get_redis().dequeue_message(deadline - now)
-                    if message is None:
-                        raise Timeout('Timeout', rpa.get_screenshot())
-                    direction, name, request, response, timestamp = message
-                    if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
-                        self.__on_common_message(message)
-                        continue
-                    if name == '.lq.FastTest.inputOperation':
-                        raise InconsistentMessage(message, rpa.get_screenshot())
-                    if name == '.lq.FastTest.inputChiPengGang':
-                        break
-                    if name == '.lq.ActionPrototype':
-                        break
-                # 先読みしたメッセージを埋め戻す．
-                rpa._get_redis().put_back(message)
-                rpa._click_region(14, 610, 43, 44, edge_sigma=1.0)
-            else:
-                # 上家以外の打牌に対する選択肢を「スキップ」ボタンを
-                # 連打することでスキップする．「スキップ」ボタンの
-                # template の region は以下でコメントアウトしている範囲だが，
-                # 選択肢が少し右からスクロールインしてくる形で
-                # 表示されるため，以下の region の左側をあまりに早く
-                # クリックすると「スキップ」以外のボタンがクリックされる
-                # 可能性がある．そのため，クリックする region を若干右側に
-                # 限定している．
-                try:
-                    #self.__robust_click_region(
-                    #    rpa, 1227, 811, 164, 50, interval=0.2, timeout=5.0,
-                    #    edge_sigma=1.0, warp=True)
-                    self.__robust_click_region(
-                        rpa, 1309, 811, 82, 50, interval=0.2, timeout=5.0,
-                        edge_sigma=1.0, warp=True)
-                except Timeout as e:
-                    # 画面の描画が乱れて「スキップ」ボタンをクリックできない
-                    # 状態になっている可能性が高い．従って，ブラウザの
-                    # リフレッシュを促す．
-                    raise BrowserRefreshRequest(
-                        'A rendering problem may occur.', rpa._get_browser(),
-                        rpa.get_screenshot())
+            # 選択肢をスキップする．ラグ読みされるのを防ぐため，スキップの UI 操作は可能な限り短時間で行う
+            # 必要がある．このため，他家の打牌に対するチー・ポン・カン・ロンをスキップする場合は
+            # 「鳴き無し」ボタンをクリックすることによりスキップする（選択肢が出た後でも「鳴き無し」ボタンを
+            # クリックすると「スキップ」ボタンをクリックしたのと同じ効果がある）．スキップできたら再度
+            # 「鳴き無し」ボタンをクリックして鳴きができる状態に戻す．
+            rpa._click_region(14, 623, 43, 43, edge_sigma=1.0, warp=True)
+            while True:
+                now = datetime.datetime.now(datetime.timezone.utc)
+                message = rpa._get_redis().dequeue_message(deadline - now)
+                if message is None:
+                    raise Timeout('Timeout', rpa.get_screenshot())
+                _, name, request, _, _ = message
+                if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
+                    self.__on_common_message(message)
+                    continue
+                if name == '.lq.FastTest.inputOperation':
+                    raise InconsistentMessage(message, rpa.get_screenshot())
+                if name == '.lq.FastTest.inputChiPengGang':
+                    break
+                if name == '.lq.ActionPrototype':
+                    break
+            # 先読みしたメッセージを埋め戻す．
+            rpa._get_redis().put_back(message)
+            rpa._click_region(14, 623, 43, 43, edge_sigma=1.0)
 
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
@@ -1448,9 +1398,8 @@ class MatchPresentation(PresentationBase):
             try:
                 # `timeout` を短めに設定しておかないと，他家の栄和に
                 # 邪魔された際に和了画面に反応できなくなる．
-                Template.wait_for_one_of_then_click(
-                    templates, rpa._get_browser(), timeout=5.0)
-            except Timeout as e:
+                Template.wait_for_one_of_then_click(templates, rpa._get_browser(), timeout=5.0)
+            except Timeout as _:
                 # 他家のポン，槓もしくは栄和に邪魔された可能性がある．
                 while True:
                     now = datetime.datetime.now(datetime.timezone.utc)
@@ -1459,13 +1408,13 @@ class MatchPresentation(PresentationBase):
                         ss = rpa.get_screenshot()
                         now = datetime.datetime.now(datetime.timezone.utc)
                         ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                        raise NotImplementedError
-                    direction, name, request, response, timestamp = message
+                        raise NotImplementedError()
+                    _, name, request, _, _ = message
                     if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
                         self.__on_common_message(message)
                         continue
                     if name == '.lq.ActionPrototype':
-                        step, action_name, data = _common.parse_action(request)
+                        _, action_name, _ = _common.parse_action(request)
                         if action_name in ('ActionChiPengGang', 'ActionHule',):
                             # 他家のポン，槓もしくは栄和に邪魔されていた．
                             # 先読みしたメッセージを埋め戻す．
@@ -1557,9 +1506,8 @@ class MatchPresentation(PresentationBase):
             try:
                 # `timeout` を短めに設定しておかないと，他家の栄和に
                 # 邪魔された際に和了画面に反応できなくなる．
-                Template.wait_for_one_of_then_click(
-                    templates, rpa._get_browser(), timeout=5.0)
-            except Timeout as e:
+                Template.wait_for_one_of_then_click(templates, rpa._get_browser(), timeout=5.0)
+            except Timeout as _:
                 # 他家の栄和に邪魔された可能性がある．
                 while True:
                     now = datetime.datetime.now(datetime.timezone.utc)
@@ -1568,13 +1516,13 @@ class MatchPresentation(PresentationBase):
                         ss = rpa.get_screenshot()
                         now = datetime.datetime.now(datetime.timezone.utc)
                         ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                        raise NotImplementedError
-                    direction, name, request, response, timestamp = message
+                        raise NotImplementedError()
+                    _, name, request, _, _ = message
                     if name in MatchPresentation.__COMMON_MESSAGE_NAMES:
                         self.__on_common_message(message)
                         continue
                     if name == '.lq.ActionPrototype':
-                        step, action_name, data = _common.parse_action(request)
+                        _, action_name, _ = _common.parse_action(request)
                         if action_name == 'ActionHule':
                             # 他家の栄和に邪魔されていた．
                             # 先読みしたメッセージを埋め戻す．
@@ -1626,21 +1574,19 @@ class MatchPresentation(PresentationBase):
             # テンプレートマッチングを邪魔することがあるので
             # 手牌が無い適当な位置にカーソルを移動する．
             rpa._move_to_region(986, 806, 134, 57, edge_sigma=1.0)
-            templates = tuple(
-                Template.open(f'template/match/gang{i}') for i in range(2))
+            templates = tuple(Template.open(f'template/match/gang{i}') for i in range(2))
             try:
-                Template.wait_for_one_of_then_click(
-                    templates, rpa._get_browser(), 10.0)
-            except Timeout as e:
+                Template.wait_for_one_of_then_click(templates, rpa._get_browser(), 10.0)
+            except Timeout as _:
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                raise NotImplementedError()
             if len(operation.combinations) >= 2:
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                raise NotImplementedError()
             # 暗槓の直後に手牌の一部がスライドする場合があるため，
             # そのスライドが終わるのを待つための sleep を入れないと
             # 捨て牌選択で意図しない牌をクリックする可能性がある．
@@ -1654,17 +1600,17 @@ class MatchPresentation(PresentationBase):
             template = Template.open('template/match/gang0')
             try:
                 template.wait_for_then_click(rpa._get_browser(), 10.0)
-            except Timeout as e:
+            except Timeout as _:
                 # TODO: 他家の栄和に邪魔された可能性がある．
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                raise NotImplementedError()
             if len(operation.combinations) >= 2:
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
-                raise NotImplementedError
+                raise NotImplementedError()
             # 大明槓の直後に手牌の一部がスライドする場合があるため，
             # そのスライドが終わるのを待つための sleep を入れないと
             # 捨て牌選択で意図しない牌をクリックする可能性がある．
@@ -1682,7 +1628,7 @@ class MatchPresentation(PresentationBase):
             template = Template.open('template/match/gang0')
             try:
                 template.wait_for_then_click(rpa._get_browser(), 10.0)
-            except Timeout as e:
+            except Timeout as _:
                 ss = rpa.get_screenshot()
                 now = datetime.datetime.now(datetime.timezone.utc)
                 ss.save(now.strftime('%Y-%m-%d-%H-%M-%S.png'))
@@ -1719,13 +1665,12 @@ class MatchPresentation(PresentationBase):
             template = Template.open('template/match/liqi')
             try:
                 template.wait_for_then_click(rpa._get_browser(), 5.0)
-            except Timeout as e:
+            except Timeout as _:
                 # 画面の描画が乱れて「立直」ボタンをクリックできない
                 # 状態になっている可能性が高い．従って，ブラウザの
                 # リフレッシュを促す．
                 raise BrowserRefreshRequest(
-                    'A rendering problem may occur.', rpa._get_browser(),
-                    rpa.get_screenshot())
+                    'A rendering problem may occur.', rpa._get_browser(), rpa.get_screenshot())
             if index < len(self.shoupai):
                 if self.shoupai[index] not in operation.candidate_dapai_list:
                     raise InvalidOperation(index, rpa.get_screenshot())
@@ -1733,8 +1678,7 @@ class MatchPresentation(PresentationBase):
                 if self.zimopai not in operation.candidate_dapai_list:
                     raise InvalidOperation('', rpa.get_screenshot())
             else:
-                raise InvalidOperation(
-                    f'{index}: Out of index.', rpa.get_screenshot())
+                raise InvalidOperation(f'{index}: Out of index.', rpa.get_screenshot())
             self.__dapai(rpa, index, [])
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
@@ -1742,36 +1686,20 @@ class MatchPresentation(PresentationBase):
             return
 
         if isinstance(operation, ZimohuOperation):
-            # 手牌の上にカーソルがあると和牌候補が表示されて
-            # テンプレートマッチングを邪魔することがあるので
-            # 手牌が無い適当な位置にカーソルを移動する．
-            rpa._move_to_region(966, 807, 154, 56, edge_sigma=1.0)
-            template = Template.open('template/match/zimohu')
-            try:
-                template.wait_for_then_click(rpa._get_browser(), 5.0)
-            except Timeout as e:
-                # 画面の描画が乱れて「ツモ」ボタンをクリックできない
-                # 状態になっている可能性が高い．従って，ブラウザの
-                # リフレッシュを促す．
-                raise BrowserRefreshRequest(
-                    'A rendering problem may occur.', rpa._get_browser(),
-                    rpa.get_screenshot())
+            # 自摸和．タメツモを防ぐため，自摸和の UI 操作は可能な限り短時間で行う必要がある．このため，
+            # 「自動和了」ボタンをクリックすることによりスキップする（自摸和の選択肢が出た後でも
+            # 「自動和了」ボタンをクリックすると「ツモ」ボタンをクリックしたのと同じ効果がある）．
+            rpa._click_region(14, 557, 43, 43, edge_sigma=1.0, warp=True)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
             return
 
         if isinstance(operation, RongOperation):
-            template = Template.open('template/match/rong')
-            try:
-                template.wait_for_then_click(rpa._get_browser(), 5.0)
-            except Timeout as e:
-                # 画面の描画が乱れて「ロン」ボタンをクリックできない
-                # 状態になっている可能性が高い．従って，ブラウザの
-                # リフレッシュを促す．
-                raise BrowserRefreshRequest(
-                    'A rendering problem may occur.', rpa._get_browser(),
-                    rpa.get_screenshot())
+            # 栄和．タメロンを防ぐため，栄和の UI 操作は可能な限り短時間で行う必要がある．このため，
+            # 「自動和了」ボタンをクリックすることによりスキップする（栄和の選択肢が出た後でも
+            # 「自動和了」ボタンをクリックすると「ロン」ボタンをクリックしたのと同じ効果がある）．
+            rpa._click_region(14, 557, 43, 43, edge_sigma=1.0, warp=True)
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
@@ -1781,13 +1709,12 @@ class MatchPresentation(PresentationBase):
             template = Template.open('template/match/liuju')
             try:
                 template.wait_for_then_click(rpa._get_browser(), 5.0)
-            except Timeout as e:
+            except Timeout as _:
                 # 画面の描画が乱れて「流局」ボタンをクリックできない
                 # 状態になっている可能性が高い．従って，ブラウザの
                 # リフレッシュを促す．
                 raise BrowserRefreshRequest(
-                    'A rendering problem may occur.', rpa._get_browser(),
-                    rpa.get_screenshot())
+                    'A rendering problem may occur.', rpa._get_browser(), rpa.get_screenshot())
             self.__operation_list = None
             now = datetime.datetime.now(datetime.timezone.utc)
             self._wait_impl(rpa, deadline - now)
